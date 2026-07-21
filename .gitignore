@@ -1,0 +1,50 @@
+# ---------- Python / backend ----------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+coverage.xml
+.python-version
+
+# ---------- Node / frontend ----------
+node_modules/
+.next/
+out/
+.turbo/
+dist/
+build/
+*.tsbuildinfo
+.pnp.*
+.yarn/
+
+# ---------- Env & secrets ----------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+secrets/
+
+# ---------- Docker / data volumes ----------
+data/
+volumes/
+*.log
+
+# ---------- Editor / OS ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# ---------- Local artifacts ----------
+*.local
+tmp/
+.cache/

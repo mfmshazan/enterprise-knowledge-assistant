@@ -1,0 +1,82 @@
+# =============================================================================
+# Backend packaging & tooling — managed by `uv`.
+#   uv sync            install everything (incl. dev extras)
+#   uv run <cmd>       run inside the project venv
+# We keep runtime deps minimal in Phase 1 and add per phase, so contributors
+# aren't installing LangGraph before there's an agent to run.
+# =============================================================================
+[project]
+name = "eka-backend"
+version = "0.1.0"
+description = "Enterprise Knowledge Assistant — FastAPI backend"
+readme = "../README.md"
+requires-python = ">=3.12"
+license = { text = "Apache-2.0" }
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.5",
+    "structlog>=24.4",
+    "python-multipart>=0.0.12",  # form/file uploads (used from Phase 3)
+    "httpx>=0.27",               # outbound HTTP + test client
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "asgi-lifespan>=2.1",        # exercise lifespan in tests
+    "ruff>=0.7",
+    "mypy>=1.11",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+# ---------- Ruff: linter + formatter (replaces flake8/isort/black) ----------
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "F",   # pyflakes + pycodestyle
+    "I",        # isort (import ordering)
+    "UP",       # pyupgrade (modern syntax)
+    "B",        # bugbear (likely bugs)
+    "C4",       # comprehensions
+    "SIM",      # simplifications
+    "ASYNC",    # async pitfalls
+]
+ignore = ["B008"]  # FastAPI's Depends() in defaults is idiomatic, not a bug
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+# ---------- mypy: static typing ----------
+[tool.mypy]
+python_version = "3.12"
+plugins = ["pydantic.mypy"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+namespace_packages = true
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+# ---------- pytest ----------
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-q"

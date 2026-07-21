@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+/* Tailwind v4 CSS-first theme. Design tokens live here rather than in a JS
+   config. shadcn/ui components (added in later phases) read these variables. */
+@theme {
+  --color-background: #0b0f17;
+  --color-foreground: #e6edf3;
+  --color-muted: #9aa4b2;
+  --color-accent: #6366f1;
+}
+
+html,
+body {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+}
+
+body {
+  font-family:
+    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
