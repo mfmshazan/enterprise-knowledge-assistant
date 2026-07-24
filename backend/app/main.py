@@ -23,6 +23,7 @@ from app.core.config import settings
 from app.core.exceptions import register_exception_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
+from app.db.session import dispose_engine, init_engine
 
 logger = get_logger(__name__)
 
@@ -36,9 +37,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         version=__version__,
         environment=settings.ENVIRONMENT,
     )
-    # Phase 3+: initialize DB engine / Redis pool / Qdrant client here.
+    init_engine()
+    # Phase 3+: initialize Redis pool / Qdrant client here.
     yield
-    # Phase 3+: dispose of pooled connections here.
+    await dispose_engine()
     logger.info("shutdown")
 
 

@@ -1,0 +1,13 @@
+"""SQLAlchemy ORM models.
+
+Importing the models here ensures they are registered on `Base.metadata` before
+Alembic autogenerate or `create_all` runs. Anything that needs "all tables"
+(migrations env, test fixtures) imports from this package.
+"""
+
+from app.models.enums import Role
+from app.models.membership import Membership
+from app.models.organization import Organization
+from app.models.user import User
+
+__all__ = ["Membership", "Organization", "Role", "User"]
