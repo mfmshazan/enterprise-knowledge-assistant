@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     AUTH_PROVIDER: Literal["clerk", "authjs", "dev"] = "clerk"
     CLERK_SECRET_KEY: str | None = None
     CLERK_JWKS_URL: str | None = None
+    CLERK_ISSUER: str | None = None  # optional: verify the JWT `iss` claim if set
     CLERK_WEBHOOK_SECRET: str | None = None
 
     # ---------- AI providers ----------
