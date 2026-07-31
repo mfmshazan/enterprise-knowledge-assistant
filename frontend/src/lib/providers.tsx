@@ -1,32 +1,40 @@
 "use client";
 
 /**
- * Client-side providers tree.
- *
- * React Query manages server state (caching, refetching, loading/error states)
- * so components never hand-roll `useEffect` + `useState` data fetching. We
- * create the QueryClient inside `useState` so it is instantiated once per
- * browser session and never shared across users on the server.
+ * Root client providers: React Query (server-state cache) + the active auth
+ * provider. The auth provider is chosen from `AUTH_MODE` at build time:
+ *   - clerk: wrap in <ClerkProvider> and bridge Clerk -> our AuthContext
+ *   - dev:   use the offline DevAuthProvider
+ * Downstream components only ever see `useAuth()`.
  */
 
+import { ClerkProvider } from "@clerk/nextjs";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
+
+import { ClerkAuthBridge } from "@/lib/auth/clerk-auth";
+import { DevAuthProvider } from "@/lib/auth/dev-auth";
+import { AUTH_MODE } from "@/lib/config";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
     () =>
       new QueryClient({
         defaultOptions: {
-          queries: {
-            staleTime: 30_000,
-            retry: 1,
-            refetchOnWindowFocus: false,
-          },
+          queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
         },
       }),
   );
 
-  return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+  const inner = (
+    <QueryClientProvider client={queryClient}>
+      {AUTH_MODE === "clerk" ? (
+        <ClerkAuthBridge>{children}</ClerkAuthBridge>
+      ) : (
+        <DevAuthProvider>{children}</DevAuthProvider>
+      )}
+    </QueryClientProvider>
   );
+
+  return AUTH_MODE === "clerk" ? <ClerkProvider>{inner}</ClerkProvider> : inner;
 }

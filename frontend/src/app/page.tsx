@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { HealthStatus } from "@/components/health-status";
 
 export default function Home() {
@@ -8,16 +10,31 @@ export default function Home() {
           🧠 Enterprise Knowledge Assistant
         </h1>
         <p className="text-[color:var(--color-muted)]">
-          Phase 1 — the full stack is wired up. This page fetches the backend
-          <code className="mx-1 rounded bg-white/10 px-1.5 py-0.5">/health</code>
-          endpoint through the typed API client and React Query.
+          Phase 2 — authentication &amp; organizations. Sign in to create a
+          workspace and manage members. Auth runs through a pluggable provider
+          (dev or Clerk).
         </p>
       </header>
+
+      <div className="flex gap-3">
+        <Link
+          href="/sign-in"
+          className="rounded-md bg-[color:var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+        >
+          Sign in
+        </Link>
+        <Link
+          href="/dashboard"
+          className="rounded-md border border-white/10 px-4 py-2 text-sm hover:bg-white/5"
+        >
+          Go to dashboard
+        </Link>
+      </div>
 
       <HealthStatus />
 
       <footer className="text-sm text-[color:var(--color-muted)]">
-        Next: authentication &amp; organizations (Phase 2).
+        Next: document ingestion pipeline (Phase 3).
       </footer>
     </main>
   );

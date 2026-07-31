@@ -25,7 +25,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-eka_password}
       POSTGRES_DB: ${POSTGRES_DB:-eka}
     ports:
-      - "5432:5432"
+      # Host 5433 -> container 5432 to avoid clashing with a natively installed
+      # PostgreSQL on the common 5432 port. In-cluster services still use 5432.
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
