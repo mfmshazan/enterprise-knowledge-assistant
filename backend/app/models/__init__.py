@@ -5,9 +5,20 @@ Alembic autogenerate or `create_all` runs. Anything that needs "all tables"
 (migrations env, test fixtures) imports from this package.
 """
 
-from app.models.enums import Role
+from app.models.document import Document
+from app.models.document_chunk import DocumentChunk
+from app.models.enums import DocumentStatus, Role, SourceType
 from app.models.membership import Membership
 from app.models.organization import Organization
 from app.models.user import User
 
-__all__ = ["Membership", "Organization", "Role", "User"]
+__all__ = [
+    "Document",
+    "DocumentChunk",
+    "DocumentStatus",
+    "Membership",
+    "Organization",
+    "Role",
+    "SourceType",
+    "User",
+]

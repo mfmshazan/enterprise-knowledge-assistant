@@ -31,3 +31,25 @@ _ROLE_RANK: dict[Role, int] = {
     Role.ADMIN: 2,
     Role.OWNER: 3,
 }
+
+
+class SourceType(StrEnum):
+    """Where a document came from."""
+
+    FILE = "file"  # an uploaded PDF/DOCX/Markdown, stored in object storage
+    URL = "url"  # a fetched web page
+
+
+class DocumentStatus(StrEnum):
+    """Lifecycle of a document through the ingestion pipeline.
+
+    pending    -> just uploaded, job enqueued, nothing processed yet
+    processing -> a worker is extracting/chunking/embedding it
+    indexed    -> chunks embedded and searchable in the vector store
+    failed     -> processing errored (see Document.error); safe to retry
+    """
+
+    PENDING = "pending"
+    PROCESSING = "processing"
+    INDEXED = "indexed"
+    FAILED = "failed"
