@@ -9,7 +9,7 @@ from httpx import AsyncClient
 
 from app.core.exceptions import NotFoundError
 from app.storage.memory import InMemoryObjectStorage
-from tests.conftest import auth
+from tests.conftest import RecordingDispatcher, auth
 
 ORGS = "/api/v1/orgs"
 OWNER = "dev:alice@acme.com:acme:owner"
@@ -54,6 +54,19 @@ async def test_upload_stores_file_and_creates_pending_document(
     # The bytes really landed in object storage under the org-scoped key.
     key = f"documents/{org_id}/{body['id']}/report.txt"
     assert await storage.get_object(key) == b"hello world"
+
+
+async def test_upload_enqueues_ingestion(
+    client: AsyncClient, dispatcher: RecordingDispatcher
+) -> None:
+    org_id = await _org_id(client, OWNER)
+    resp = await client.post(
+        _docs_url(org_id),
+        files={"file": ("a.md", b"# hello", "text/markdown")},
+        headers=auth(OWNER),
+    )
+    doc_id = uuid.UUID(resp.json()["id"])
+    assert doc_id in dispatcher.enqueued
 
 
 async def test_upload_rejects_unsupported_type(client: AsyncClient) -> None:

@@ -23,6 +23,7 @@ from app.auth.base import AuthProvider
 from app.auth.factory import get_auth_provider
 from app.core.exceptions import AuthenticationError, NotFoundError, PermissionDeniedError
 from app.db.session import get_db
+from app.ingestion.dispatcher import IngestionDispatcher, get_ingestion_dispatcher
 from app.models.enums import Role
 from app.models.membership import Membership
 from app.models.user import User
@@ -34,10 +35,14 @@ from app.services.document_service import DocumentService
 from app.services.identity_service import IdentityService
 from app.storage.base import ObjectStorage
 from app.storage.factory import get_object_storage
+from app.vectorstore.base import VectorStore
+from app.vectorstore.factory import get_vector_store
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 AuthProviderDep = Annotated[AuthProvider, Depends(get_auth_provider)]
 StorageDep = Annotated[ObjectStorage, Depends(get_object_storage)]
+DispatcherDep = Annotated[IngestionDispatcher, Depends(get_ingestion_dispatcher)]
+VectorStoreDep = Annotated[VectorStore, Depends(get_vector_store)]
 
 # auto_error=False: we raise our own AuthenticationError (uniform 401 envelope)
 # instead of FastAPI's default, so error responses stay consistent.
@@ -106,11 +111,18 @@ def get_document_service(
     db: DbSession,
     membership: CurrentMembership,
     storage: StorageDep,
+    dispatcher: DispatcherDep,
+    vector_store: VectorStoreDep,
 ) -> DocumentService:
     """Build a tenant-bound DocumentService. Depending on `CurrentMembership`
     enforces that the caller is a member of the org in the path before any
     document operation runs, and scopes the repository to that org."""
-    return DocumentService(DocumentRepository(db, membership.org_id), storage)
+    return DocumentService(
+        DocumentRepository(db, membership.org_id),
+        storage,
+        dispatcher,
+        vector_store,
+    )
 
 
 DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]

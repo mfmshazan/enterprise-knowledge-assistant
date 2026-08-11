@@ -18,17 +18,28 @@ from pathlib import PurePosixPath
 
 from app.core.config import settings
 from app.core.exceptions import NotFoundError, PayloadTooLargeError, ValidationError
+from app.ingestion.dispatcher import IngestionDispatcher
 from app.ingestion.filetypes import SUPPORTED_EXTENSIONS, detect_format
 from app.models.document import Document
 from app.models.enums import DocumentStatus, SourceType
 from app.repositories.document import DocumentRepository
 from app.storage.base import ObjectStorage
+from app.vectorstore.base import VectorStore
 
 
 class DocumentService:
-    def __init__(self, documents: DocumentRepository, storage: ObjectStorage) -> None:
+    def __init__(
+        self,
+        documents: DocumentRepository,
+        storage: ObjectStorage,
+        dispatcher: IngestionDispatcher,
+        vector_store: VectorStore | None = None,
+    ) -> None:
         self.documents = documents
         self.storage = storage
+        self.dispatcher = dispatcher
+        # Vector cleanup on delete is best-effort; None skips it (e.g. tests).
+        self.vector_store = vector_store
 
     async def create_from_upload(
         self,
@@ -68,7 +79,7 @@ class DocumentService:
             uploaded_by_user_id=uploaded_by,
         )
         self.documents.add(document)  # stamps org_id
-        await self.documents.session.flush()
+        await self._persist_and_dispatch(document)
         return document
 
     async def create_from_url(
@@ -86,8 +97,18 @@ class DocumentService:
             uploaded_by_user_id=uploaded_by,
         )
         self.documents.add(document)
-        await self.documents.session.flush()
+        await self._persist_and_dispatch(document)
         return document
+
+    async def _persist_and_dispatch(self, document: Document) -> None:
+        """Commit the new document, then trigger ingestion.
+
+        We commit here (rather than deferring to the request-scoped transaction)
+        so the row is visible to the ingestion job, which runs in a *separate*
+        session/transaction and would otherwise not see an uncommitted insert.
+        """
+        await self.documents.session.commit()
+        await self.dispatcher.enqueue(document.id)
 
     async def list(self) -> list[Document]:
         return await self.documents.list_recent()
@@ -102,5 +123,6 @@ class DocumentService:
         document = await self.get(document_id)
         if document.storage_key:
             await self.storage.delete_object(document.storage_key)
-        # Vector cleanup is wired when the vector store lands (Phase 3f).
+        if self.vector_store is not None:
+            await self.vector_store.delete_by_document(self.documents.org_id, document.id)
         await self.documents.delete(document)

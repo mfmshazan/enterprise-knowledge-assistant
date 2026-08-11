@@ -15,6 +15,7 @@ Test strategy for Phase 2:
 
 from __future__ import annotations
 
+import uuid
 from collections.abc import AsyncIterator
 
 import pytest
@@ -29,9 +30,23 @@ from app.auth.dev import DevAuthProvider
 from app.auth.factory import get_auth_provider
 from app.db.base import Base
 from app.db.session import get_db
+from app.ingestion.dispatcher import IngestionDispatcher, get_ingestion_dispatcher
 from app.main import create_app
 from app.storage.factory import get_object_storage
 from app.storage.memory import InMemoryObjectStorage
+from app.vectorstore.factory import get_vector_store
+from app.vectorstore.memory import InMemoryVectorStore
+
+
+class RecordingDispatcher(IngestionDispatcher):
+    """Test dispatcher that records enqueued document ids instead of running the
+    real pipeline — keeps API tests isolated from ingestion/OpenAI/Qdrant."""
+
+    def __init__(self) -> None:
+        self.enqueued: list[uuid.UUID] = []
+
+    async def enqueue(self, document_id: uuid.UUID) -> None:
+        self.enqueued.append(document_id)
 
 
 @pytest.fixture
@@ -65,9 +80,21 @@ def storage() -> InMemoryObjectStorage:
 
 
 @pytest.fixture
+def vector_store() -> InMemoryVectorStore:
+    return InMemoryVectorStore()
+
+
+@pytest.fixture
+def dispatcher() -> RecordingDispatcher:
+    return RecordingDispatcher()
+
+
+@pytest.fixture
 def app(
     db_sessionmaker: async_sessionmaker[AsyncSession],
     storage: InMemoryObjectStorage,
+    vector_store: InMemoryVectorStore,
+    dispatcher: RecordingDispatcher,
 ) -> FastAPI:
     application = create_app()
 
@@ -83,6 +110,8 @@ def app(
     application.dependency_overrides[get_db] = _override_get_db
     application.dependency_overrides[get_auth_provider] = lambda: DevAuthProvider()
     application.dependency_overrides[get_object_storage] = lambda: storage
+    application.dependency_overrides[get_vector_store] = lambda: vector_store
+    application.dependency_overrides[get_ingestion_dispatcher] = lambda: dispatcher
     return application
 
 

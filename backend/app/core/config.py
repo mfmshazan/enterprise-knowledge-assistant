@@ -63,6 +63,15 @@ class Settings(BaseSettings):
     # ---------- Uploads ----------
     MAX_UPLOAD_MB: int = 25  # reject files larger than this at the API boundary
 
+    # ---------- Ingestion ----------
+    # How a pending document is processed: "inline" runs the pipeline in a
+    # background task inside the API process (zero extra services, great for dev);
+    # "arq" enqueues a job for a separate worker (production scale).
+    INGEST_MODE: Literal["inline", "arq"] = "inline"
+    CHUNK_SIZE: int = 1000  # target characters per chunk
+    CHUNK_OVERLAP: int = 150  # characters shared between adjacent chunks
+    URL_FETCH_TIMEOUT: int = 20  # seconds, for URL ingestion
+
     # ---------- Auth ----------
     AUTH_PROVIDER: Literal["clerk", "authjs", "dev"] = "clerk"
     CLERK_SECRET_KEY: str | None = None

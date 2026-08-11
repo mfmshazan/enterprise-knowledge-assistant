@@ -25,6 +25,11 @@ dependencies = [
     "alembic>=1.13",             # database migrations
     "pyjwt[crypto]>=2.9",        # verify Clerk RS256 JWTs against JWKS
     "boto3>=1.35",               # S3-compatible object storage (MinIO/AWS S3)
+    "pypdf>=5.1",                # PDF text extraction
+    "python-docx>=1.1",          # DOCX text extraction
+    "beautifulsoup4>=4.12",      # HTML -> readable text for URL ingestion
+    "openai>=1.55",              # embeddings + LLM (default AI provider)
+    "qdrant-client>=1.12",       # vector database client
 ]
 
 [project.optional-dependencies]
