@@ -59,6 +59,12 @@ class ValidationError(AppError):
     message = "The request was invalid."
 
 
+class PayloadTooLargeError(AppError):
+    status_code = status.HTTP_413_CONTENT_TOO_LARGE
+    error_code = "payload_too_large"
+    message = "The uploaded file is too large."
+
+
 class ConflictError(AppError):
     status_code = status.HTTP_409_CONFLICT
     error_code = "conflict"

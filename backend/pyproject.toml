@@ -9,7 +9,6 @@
 name = "eka-backend"
 version = "0.1.0"
 description = "Enterprise Knowledge Assistant — FastAPI backend"
-readme = "../README.md"
 requires-python = ">=3.12"
 license = { text = "Apache-2.0" }
 
@@ -25,6 +24,7 @@ dependencies = [
     "asyncpg>=0.30",             # PostgreSQL async driver (production)
     "alembic>=1.13",             # database migrations
     "pyjwt[crypto]>=2.9",        # verify Clerk RS256 JWTs against JWKS
+    "boto3>=1.35",               # S3-compatible object storage (MinIO/AWS S3)
 ]
 
 [project.optional-dependencies]
@@ -79,6 +79,11 @@ explicit_package_bases = true
 [[tool.mypy.overrides]]
 module = ["tests.*"]
 disallow_untyped_defs = false
+
+# boto3/botocore ship without type stubs; don't fail on the missing imports.
+[[tool.mypy.overrides]]
+module = ["boto3.*", "botocore.*"]
+ignore_missing_imports = true
 
 # ---------- pytest ----------
 [tool.pytest.ini_options]

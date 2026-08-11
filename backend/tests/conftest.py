@@ -30,6 +30,8 @@ from app.auth.factory import get_auth_provider
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import create_app
+from app.storage.factory import get_object_storage
+from app.storage.memory import InMemoryObjectStorage
 
 
 @pytest.fixture
@@ -56,7 +58,17 @@ async def db_session(
 
 
 @pytest.fixture
-def app(db_sessionmaker: async_sessionmaker[AsyncSession]) -> FastAPI:
+def storage() -> InMemoryObjectStorage:
+    """A per-test in-memory object store, shared between the app override and
+    the test so assertions can inspect stored bytes."""
+    return InMemoryObjectStorage()
+
+
+@pytest.fixture
+def app(
+    db_sessionmaker: async_sessionmaker[AsyncSession],
+    storage: InMemoryObjectStorage,
+) -> FastAPI:
     application = create_app()
 
     async def _override_get_db() -> AsyncIterator[AsyncSession]:
@@ -70,6 +82,7 @@ def app(db_sessionmaker: async_sessionmaker[AsyncSession]) -> FastAPI:
 
     application.dependency_overrides[get_db] = _override_get_db
     application.dependency_overrides[get_auth_provider] = lambda: DevAuthProvider()
+    application.dependency_overrides[get_object_storage] = lambda: storage
     return application
 
 

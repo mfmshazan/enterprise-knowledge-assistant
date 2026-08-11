@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 
-from app.api.v1.routers import organizations, users, webhooks
+from app.api.v1.routers import documents, organizations, users, webhooks
 
 api_router = APIRouter()
 
@@ -18,8 +18,8 @@ api_router = APIRouter()
 
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(organizations.router, prefix="/orgs", tags=["organizations"])
+api_router.include_router(documents.router, prefix="/orgs/{org_id}/documents", tags=["documents"])
 api_router.include_router(webhooks.router, prefix="/webhooks", tags=["webhooks"])
 
 # Future phases:
-# api_router.include_router(documents.router, prefix="/documents", tags=["documents"])
 # api_router.include_router(chat.router, prefix="/chat", tags=["chat"])

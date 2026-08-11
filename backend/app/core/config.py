@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     S3_BUCKET: str = "eka-documents"
     S3_USE_SSL: bool = False
 
+    # ---------- Uploads ----------
+    MAX_UPLOAD_MB: int = 25  # reject files larger than this at the API boundary
+
     # ---------- Auth ----------
     AUTH_PROVIDER: Literal["clerk", "authjs", "dev"] = "clerk"
     CLERK_SECRET_KEY: str | None = None

@@ -26,13 +26,18 @@ from app.db.session import get_db
 from app.models.enums import Role
 from app.models.membership import Membership
 from app.models.user import User
+from app.repositories.document import DocumentRepository
 from app.repositories.membership import MembershipRepository
 from app.repositories.organization import OrganizationRepository
 from app.repositories.user import UserRepository
+from app.services.document_service import DocumentService
 from app.services.identity_service import IdentityService
+from app.storage.base import ObjectStorage
+from app.storage.factory import get_object_storage
 
 DbSession = Annotated[AsyncSession, Depends(get_db)]
 AuthProviderDep = Annotated[AuthProvider, Depends(get_auth_provider)]
+StorageDep = Annotated[ObjectStorage, Depends(get_object_storage)]
 
 # auto_error=False: we raise our own AuthenticationError (uniform 401 envelope)
 # instead of FastAPI's default, so error responses stay consistent.
@@ -95,3 +100,17 @@ def require_role(minimum: Role) -> Callable[[Membership], Awaitable[Membership]]
         return membership
 
     return _guard
+
+
+def get_document_service(
+    db: DbSession,
+    membership: CurrentMembership,
+    storage: StorageDep,
+) -> DocumentService:
+    """Build a tenant-bound DocumentService. Depending on `CurrentMembership`
+    enforces that the caller is a member of the org in the path before any
+    document operation runs, and scopes the repository to that org."""
+    return DocumentService(DocumentRepository(db, membership.org_id), storage)
+
+
+DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
