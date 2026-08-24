@@ -80,9 +80,14 @@ class Settings(BaseSettings):
     CLERK_WEBHOOK_SECRET: str | None = None
 
     # ---------- AI providers ----------
-    LLM_PROVIDER: str = "openai"
-    EMBEDDING_PROVIDER: str = "openai"
+    # Providers speak the OpenAI API. "gemini" uses Google's OpenAI-compatible
+    # endpoint, so the same client works with a different base URL + key.
+    LLM_PROVIDER: Literal["openai", "gemini"] = "openai"
+    EMBEDDING_PROVIDER: Literal["openai", "gemini"] = "openai"
     OPENAI_API_KEY: str | None = None
+    GOOGLE_API_KEY: str | None = None  # Gemini API key
+    # Optional override of the OpenAI-compatible base URL (advanced / local models).
+    OPENAI_BASE_URL: str | None = None
     LLM_MODEL: str = "gpt-4o"
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_DIM: int = 1536

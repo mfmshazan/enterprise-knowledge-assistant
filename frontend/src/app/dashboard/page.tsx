@@ -9,6 +9,7 @@
  * the user create an organization.
  */
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -101,11 +102,16 @@ export default function DashboardPage() {
         {me.data && me.data.memberships.length > 0 && (
           <ul className="divide-y divide-white/10">
             {me.data.memberships.map((m) => (
-              <li key={m.id} className="flex items-center justify-between py-2">
-                <span>{m.organization.name}</span>
-                <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs uppercase tracking-wide">
-                  {m.role}
-                </span>
+              <li key={m.id} className="py-2">
+                <Link
+                  href={`/orgs/${m.organization.id}`}
+                  className="flex items-center justify-between rounded-md px-2 py-1 hover:bg-white/5"
+                >
+                  <span>{m.organization.name}</span>
+                  <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs uppercase tracking-wide">
+                    {m.role}
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

@@ -1,9 +1,10 @@
-"""OpenAI embedding provider.
+"""OpenAI-compatible embedding provider.
 
-Sends batches to the OpenAI embeddings API. We cap batch size defensively so a
-document with thousands of chunks is split across requests rather than sent as
-one oversized payload. The async client keeps the event loop free during the
-network round-trips.
+Sends batches to an OpenAI-compatible embeddings API. Because Google Gemini (and
+many local servers) expose an OpenAI-compatible endpoint, the *same* class serves
+them by overriding `base_url` — the concrete choice is made in the factory. We
+cap batch size defensively so a document with thousands of chunks is split across
+requests rather than sent as one oversized payload.
 """
 
 from __future__ import annotations
@@ -16,8 +17,15 @@ _MAX_BATCH = 128
 
 
 class OpenAIEmbeddingProvider(EmbeddingProvider):
-    def __init__(self, *, api_key: str, model: str, dimension: int) -> None:
-        self._client = AsyncOpenAI(api_key=api_key)
+    def __init__(
+        self,
+        *,
+        api_key: str,
+        model: str,
+        dimension: int,
+        base_url: str | None = None,
+    ) -> None:
+        self._client = AsyncOpenAI(api_key=api_key, base_url=base_url)
         self._model = model
         self._dimension = dimension
 
