@@ -23,16 +23,20 @@ from app.auth.base import AuthProvider
 from app.auth.factory import get_auth_provider
 from app.core.exceptions import AuthenticationError, NotFoundError, PermissionDeniedError
 from app.db.session import get_db
+from app.embeddings.base import EmbeddingProvider
+from app.embeddings.factory import get_embedding_provider
 from app.ingestion.dispatcher import IngestionDispatcher, get_ingestion_dispatcher
 from app.models.enums import Role
 from app.models.membership import Membership
 from app.models.user import User
 from app.repositories.document import DocumentRepository
+from app.repositories.document_chunk import DocumentChunkRepository
 from app.repositories.membership import MembershipRepository
 from app.repositories.organization import OrganizationRepository
 from app.repositories.user import UserRepository
 from app.services.document_service import DocumentService
 from app.services.identity_service import IdentityService
+from app.services.retrieval_service import RetrievalService
 from app.storage.base import ObjectStorage
 from app.storage.factory import get_object_storage
 from app.vectorstore.base import VectorStore
@@ -43,6 +47,7 @@ AuthProviderDep = Annotated[AuthProvider, Depends(get_auth_provider)]
 StorageDep = Annotated[ObjectStorage, Depends(get_object_storage)]
 DispatcherDep = Annotated[IngestionDispatcher, Depends(get_ingestion_dispatcher)]
 VectorStoreDep = Annotated[VectorStore, Depends(get_vector_store)]
+EmbeddingDep = Annotated[EmbeddingProvider, Depends(get_embedding_provider)]
 
 # auto_error=False: we raise our own AuthenticationError (uniform 401 envelope)
 # instead of FastAPI's default, so error responses stay consistent.
@@ -126,3 +131,21 @@ def get_document_service(
 
 
 DocumentServiceDep = Annotated[DocumentService, Depends(get_document_service)]
+
+
+def get_retrieval_service(
+    db: DbSession,
+    membership: CurrentMembership,
+    embedder: EmbeddingDep,
+    vector_store: VectorStoreDep,
+) -> RetrievalService:
+    """Tenant-bound retrieval. Membership is required (org access), and the chunk
+    repository is scoped to that org so results never cross tenants."""
+    return RetrievalService(
+        DocumentChunkRepository(db, membership.org_id),
+        embedder,
+        vector_store,
+    )
+
+
+RetrievalServiceDep = Annotated[RetrievalService, Depends(get_retrieval_service)]
