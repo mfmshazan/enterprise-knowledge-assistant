@@ -72,6 +72,12 @@ class Settings(BaseSettings):
     CHUNK_OVERLAP: int = 150  # characters shared between adjacent chunks
     URL_FETCH_TIMEOUT: int = 20  # seconds, for URL ingestion
 
+    # ---------- Chat / agents ----------
+    # "linear" = single RAG pass (retrieve -> generate). "agentic" = LangGraph
+    # multi-agent graph (plan -> retrieve -> generate -> verify, with self-correction).
+    CHAT_MODE: Literal["linear", "agentic"] = "linear"
+    AGENT_MAX_ATTEMPTS: int = 2  # retrieval/generation retries before finalizing
+
     # ---------- Auth ----------
     AUTH_PROVIDER: Literal["clerk", "authjs", "dev"] = "clerk"
     CLERK_SECRET_KEY: str | None = None

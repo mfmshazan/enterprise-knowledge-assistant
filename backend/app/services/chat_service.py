@@ -23,15 +23,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import NotFoundError
 from app.core.logging import get_logger
-from app.llm.base import LLMProvider
 from app.models.citation import Citation
 from app.models.conversation import Conversation
 from app.models.enums import MessageRole
 from app.models.message import Message
 from app.models.user import User
-from app.rag.prompts import build_grounded_messages
+from app.rag.engine import AnswerEngine
 from app.repositories.conversation import ConversationRepository
-from app.services.retrieval_service import DEFAULT_TOP_K, RetrievalService
+from app.services.retrieval_service import DEFAULT_TOP_K
 
 logger = get_logger(__name__)
 
@@ -49,12 +48,10 @@ class ChatService:
     def __init__(
         self,
         conversations: ConversationRepository,
-        retrieval: RetrievalService,
-        llm: LLMProvider,
+        engine: AnswerEngine,
     ) -> None:
         self.conversations = conversations
-        self.retrieval = retrieval
-        self.llm = llm
+        self.engine = engine
 
     @property
     def _session(self) -> AsyncSession:
@@ -80,17 +77,16 @@ class ChatService:
             )
         )
 
-        # 2. Retrieve grounding context and generate an answer.
-        chunks = await self.retrieval.search(message, top_k=top_k)
-        prompt = build_grounded_messages(message, chunks)
-        answer = await self.llm.generate(prompt)
+        # 2. Produce a grounded answer (linear or agentic engine) + its sources.
+        result = await self.engine.answer(message, top_k=top_k)
+        chunks = result.chunks
 
         # 3. Record the assistant's turn with citations to the sources used.
         assistant = Message(
             org_id=self.conversations.org_id,
             conversation_id=conversation.id,
             role=MessageRole.ASSISTANT,
-            content=answer,
+            content=result.answer,
         )
         # Assign the collection (not append) so it is a *loaded* relationship even
         # when empty — otherwise serializing `.citations` after commit would

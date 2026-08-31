@@ -19,8 +19,10 @@ from fastapi import Depends, Path
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.agents.engine import AgenticAnswerEngine
 from app.auth.base import AuthProvider
 from app.auth.factory import get_auth_provider
+from app.core.config import settings
 from app.core.exceptions import AuthenticationError, NotFoundError, PermissionDeniedError
 from app.db.session import get_db
 from app.embeddings.base import EmbeddingProvider
@@ -31,6 +33,7 @@ from app.llm.factory import get_llm_provider
 from app.models.enums import Role
 from app.models.membership import Membership
 from app.models.user import User
+from app.rag.engine import AnswerEngine, LinearAnswerEngine
 from app.repositories.conversation import ConversationRepository
 from app.repositories.document import DocumentRepository
 from app.repositories.document_chunk import DocumentChunkRepository
@@ -164,11 +167,17 @@ def get_chat_service(
     llm: LLMDep,
 ) -> ChatService:
     """Tenant-bound chat. Retrieval and conversation storage are both scoped to
-    the caller's org, so a conversation can only draw on its own knowledge."""
+    the caller's org, so a conversation can only draw on its own knowledge. The
+    answer engine (linear vs. agentic LangGraph) is chosen by `CHAT_MODE`."""
     retrieval = RetrievalService(
         DocumentChunkRepository(db, membership.org_id), embedder, vector_store
     )
-    return ChatService(ConversationRepository(db, membership.org_id), retrieval, llm)
+    engine: AnswerEngine
+    if settings.CHAT_MODE == "agentic":
+        engine = AgenticAnswerEngine(retrieval, llm, max_attempts=settings.AGENT_MAX_ATTEMPTS)
+    else:
+        engine = LinearAnswerEngine(retrieval, llm)
+    return ChatService(ConversationRepository(db, membership.org_id), engine)
 
 
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]

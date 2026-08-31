@@ -96,7 +96,7 @@ The project is built in phases, each ending in a runnable, tested state:
 - [x] **Phase 3** — Document ingestion pipeline (extract → chunk → embed → index)
 - [x] **Phase 4** — RAG retrieval (org-scoped semantic search)
 - [x] **Phase 5** — AI chat with citations
-- [ ] **Phase 6** — Agentic AI (LangGraph multi-agent)
+- [x] **Phase 6** — Agentic AI (LangGraph: plan → retrieve → generate → verify)
 - [ ] **Phase 7** — Enterprise features
 - [ ] **Phase 8** — Deployment & monitoring
 

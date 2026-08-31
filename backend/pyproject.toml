@@ -30,6 +30,7 @@ dependencies = [
     "beautifulsoup4>=4.12",      # HTML -> readable text for URL ingestion
     "openai>=1.55",              # embeddings + LLM (default AI provider)
     "qdrant-client>=1.12",       # vector database client
+    "langgraph>=0.2",            # multi-agent orchestration (agentic chat)
 ]
 
 [project.optional-dependencies]
@@ -85,9 +86,9 @@ explicit_package_bases = true
 module = ["tests.*"]
 disallow_untyped_defs = false
 
-# boto3/botocore ship without type stubs; don't fail on the missing imports.
+# Third-party packages without complete type stubs; don't fail on missing imports.
 [[tool.mypy.overrides]]
-module = ["boto3.*", "botocore.*"]
+module = ["boto3.*", "botocore.*", "langgraph.*"]
 ignore_missing_imports = true
 
 # ---------- pytest ----------
