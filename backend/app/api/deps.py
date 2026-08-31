@@ -26,14 +26,18 @@ from app.db.session import get_db
 from app.embeddings.base import EmbeddingProvider
 from app.embeddings.factory import get_embedding_provider
 from app.ingestion.dispatcher import IngestionDispatcher, get_ingestion_dispatcher
+from app.llm.base import LLMProvider
+from app.llm.factory import get_llm_provider
 from app.models.enums import Role
 from app.models.membership import Membership
 from app.models.user import User
+from app.repositories.conversation import ConversationRepository
 from app.repositories.document import DocumentRepository
 from app.repositories.document_chunk import DocumentChunkRepository
 from app.repositories.membership import MembershipRepository
 from app.repositories.organization import OrganizationRepository
 from app.repositories.user import UserRepository
+from app.services.chat_service import ChatService
 from app.services.document_service import DocumentService
 from app.services.identity_service import IdentityService
 from app.services.retrieval_service import RetrievalService
@@ -48,6 +52,7 @@ StorageDep = Annotated[ObjectStorage, Depends(get_object_storage)]
 DispatcherDep = Annotated[IngestionDispatcher, Depends(get_ingestion_dispatcher)]
 VectorStoreDep = Annotated[VectorStore, Depends(get_vector_store)]
 EmbeddingDep = Annotated[EmbeddingProvider, Depends(get_embedding_provider)]
+LLMDep = Annotated[LLMProvider, Depends(get_llm_provider)]
 
 # auto_error=False: we raise our own AuthenticationError (uniform 401 envelope)
 # instead of FastAPI's default, so error responses stay consistent.
@@ -149,3 +154,21 @@ def get_retrieval_service(
 
 
 RetrievalServiceDep = Annotated[RetrievalService, Depends(get_retrieval_service)]
+
+
+def get_chat_service(
+    db: DbSession,
+    membership: CurrentMembership,
+    embedder: EmbeddingDep,
+    vector_store: VectorStoreDep,
+    llm: LLMDep,
+) -> ChatService:
+    """Tenant-bound chat. Retrieval and conversation storage are both scoped to
+    the caller's org, so a conversation can only draw on its own knowledge."""
+    retrieval = RetrievalService(
+        DocumentChunkRepository(db, membership.org_id), embedder, vector_store
+    )
+    return ChatService(ConversationRepository(db, membership.org_id), retrieval, llm)
+
+
+ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]

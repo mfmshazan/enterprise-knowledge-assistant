@@ -33,6 +33,8 @@ from app.db.session import get_db
 from app.embeddings.factory import get_embedding_provider
 from app.embeddings.fake import FakeEmbeddingProvider
 from app.ingestion.dispatcher import IngestionDispatcher, get_ingestion_dispatcher
+from app.llm.factory import get_llm_provider
+from app.llm.fake import FakeLLMProvider
 from app.main import create_app
 from app.storage.factory import get_object_storage
 from app.storage.memory import InMemoryObjectStorage
@@ -120,6 +122,7 @@ def app(
     application.dependency_overrides[get_embedding_provider] = lambda: FakeEmbeddingProvider(
         dimension=TEST_EMBED_DIM
     )
+    application.dependency_overrides[get_llm_provider] = lambda: FakeLLMProvider()
     return application
 
 

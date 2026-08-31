@@ -53,3 +53,10 @@ class DocumentStatus(StrEnum):
     PROCESSING = "processing"
     INDEXED = "indexed"
     FAILED = "failed"
+
+
+class MessageRole(StrEnum):
+    """Author of a chat message."""
+
+    USER = "user"
+    ASSISTANT = "assistant"

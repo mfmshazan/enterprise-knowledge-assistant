@@ -92,10 +92,10 @@ Useful targets (`make help` for all):
 The project is built in phases, each ending in a runnable, tested state:
 
 - [x] **Phase 1** — Project scaffold, Docker stack, health checks, CI
-- [ ] **Phase 2** — Authentication, organizations & users
-- [ ] **Phase 3** — Document ingestion pipeline
-- [ ] **Phase 4** — RAG retrieval
-- [ ] **Phase 5** — AI chat with citations
+- [x] **Phase 2** — Authentication, organizations & users (RBAC)
+- [x] **Phase 3** — Document ingestion pipeline (extract → chunk → embed → index)
+- [x] **Phase 4** — RAG retrieval (org-scoped semantic search)
+- [x] **Phase 5** — AI chat with citations
 - [ ] **Phase 6** — Agentic AI (LangGraph multi-agent)
 - [ ] **Phase 7** — Enterprise features
 - [ ] **Phase 8** — Deployment & monitoring

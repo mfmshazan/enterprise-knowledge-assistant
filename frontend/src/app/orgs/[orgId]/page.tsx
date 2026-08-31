@@ -38,10 +38,18 @@ export default function OrgWorkspacePage() {
         <Link href="/dashboard" className="text-sm text-[color:var(--color-muted)] hover:underline">
           ← Back to dashboard
         </Link>
-        <h1 className="text-2xl font-semibold">Knowledge base</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Knowledge base</h1>
+          <Link
+            href={`/orgs/${orgId}/chat`}
+            className="rounded-md bg-[color:var(--color-accent)] px-4 py-2 text-sm font-medium text-white hover:opacity-90"
+          >
+            💬 Ask a question
+          </Link>
+        </div>
         <p className="text-sm text-[color:var(--color-muted)]">
-          Documents uploaded here are chunked and embedded so they can be searched
-          and (soon) answered over.
+          Documents uploaded here are chunked and embedded, then answered over in
+          chat with cited sources.
         </p>
       </header>
 

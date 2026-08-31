@@ -160,3 +160,53 @@ export async function uploadDocument(
   }
   return data as DocumentItem;
 }
+
+// ---------- Chat ----------
+
+export interface Citation {
+  rank: number;
+  document_id: string | null;
+  chunk_id: string | null;
+  document_title: string;
+  snippet: string;
+}
+
+export interface ChatMessageItem {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+  citations: Citation[];
+}
+
+export interface ChatSendResponse {
+  conversation_id: string;
+  message: ChatMessageItem;
+}
+
+export interface ConversationSummary {
+  id: string;
+  title: string;
+  created_at: string;
+}
+
+export interface ConversationDetail {
+  id: string;
+  title: string;
+  created_at: string;
+  messages: ChatMessageItem[];
+}
+
+const chatPath = (orgId: string) => `/api/v1/orgs/${orgId}/chat`;
+
+export const sendChatMessage = (
+  token: string | null,
+  orgId: string,
+  input: { message: string; conversation_id?: string; top_k?: number },
+) => apiFetch<ChatSendResponse>(chatPath(orgId), { method: "POST", token, body: input });
+
+export const listConversations = (token: string | null, orgId: string) =>
+  apiFetch<ConversationSummary[]>(`${chatPath(orgId)}/conversations`, { token });
+
+export const getConversation = (token: string | null, orgId: string, conversationId: string) =>
+  apiFetch<ConversationDetail>(`${chatPath(orgId)}/conversations/${conversationId}`, { token });
