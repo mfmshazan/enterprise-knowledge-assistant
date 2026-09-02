@@ -38,7 +38,13 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
         environment=settings.ENVIRONMENT,
     )
     init_engine()
-    # Phase 3+: initialize Redis pool / Qdrant client here.
+    try:
+        from app.vectorstore.factory import get_vector_store
+
+        store = get_vector_store()
+        await store.ensure_collection(settings.EMBEDDING_DIM)
+    except Exception as e:
+        logger.warning("qdrant_init_deferred", error=str(e))
     yield
     await dispose_engine()
     logger.info("shutdown")

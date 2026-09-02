@@ -71,6 +71,12 @@ class ConflictError(AppError):
     message = "The resource already exists or conflicts with current state."
 
 
+class RateLimitExceededError(AppError):
+    status_code = status.HTTP_429_TOO_MANY_REQUESTS
+    error_code = "rate_limit_exceeded"
+    message = "Rate limit exceeded. Please try again later."
+
+
 def _error_body(error_code: str, message: str, details: Any = None) -> dict[str, Any]:
     """Uniform error envelope returned by every handler."""
     body: dict[str, Any] = {"error": {"code": error_code, "message": message}}

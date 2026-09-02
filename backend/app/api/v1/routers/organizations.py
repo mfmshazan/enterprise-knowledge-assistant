@@ -16,9 +16,10 @@ from fastapi import APIRouter, Depends, status
 from app.api.deps import CurrentMembership, CurrentUser, DbSession, require_role
 from app.models.enums import Role
 from app.models.membership import Membership
+from app.repositories.audit_log import AuditLogRepository
 from app.repositories.membership import MembershipRepository
 from app.repositories.organization import OrganizationRepository
-from app.schemas.membership import MemberRoleUpdate, MembershipRead, OrgMemberRead
+from app.schemas.membership import MemberInvite, MemberRoleUpdate, MembershipRead, OrgMemberRead
 from app.schemas.organization import OrganizationCreate, OrganizationRead
 from app.services.organization_service import OrganizationService
 
@@ -42,6 +43,14 @@ async def create_organization(
 ) -> OrganizationRead:
     service = _org_service(db)
     org = await service.create(owner=user, name=payload.name, slug=payload.slug)
+    audit = AuditLogRepository(db, org.id)
+    await audit.log(
+        action="organization.create",
+        resource_type="organization",
+        resource_id=str(org.id),
+        actor_user_id=user.id,
+        metadata={"name": org.name, "slug": org.slug},
+    )
     return OrganizationRead.model_validate(org)
 
 
@@ -66,7 +75,6 @@ async def get_organization(
     db: DbSession,
 ) -> OrganizationRead:
     org = await OrganizationRepository(db).get(org_id)
-    # membership dependency already guaranteed access; org must exist.
     assert org is not None  # noqa: S101
     return OrganizationRead.model_validate(org)
 
@@ -83,6 +91,36 @@ async def list_members(
 ) -> list[OrgMemberRead]:
     members = await _org_service(db).list_members(org_id=org_id)
     return [OrgMemberRead.model_validate(m) for m in members]
+
+
+@router.post(
+    "/{org_id}/members",
+    response_model=OrgMemberRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_role(Role.ADMIN))],
+    summary="Invite or add a member to the organization (admin+)",
+)
+async def invite_member(
+    org_id: uuid.UUID,
+    payload: MemberInvite,
+    db: DbSession,
+    actor: Annotated[Membership, Depends(require_role(Role.ADMIN))],
+) -> OrgMemberRead:
+    invited = await _org_service(db).add_or_invite_member(
+        org_id=org_id,
+        email=payload.email,
+        role=payload.role,
+        actor=actor,
+    )
+    audit = AuditLogRepository(db, org_id)
+    await audit.log(
+        action="member.invite",
+        resource_type="membership",
+        resource_id=str(invited.id),
+        actor_user_id=actor.user_id,
+        metadata={"email": payload.email, "role": payload.role.value},
+    )
+    return OrgMemberRead.model_validate(invited)
 
 
 @router.patch(
@@ -103,4 +141,39 @@ async def update_member_role(
         new_role=payload.role,
         actor=actor,
     )
+    audit = AuditLogRepository(db, org_id)
+    await audit.log(
+        action="member.role_update",
+        resource_type="membership",
+        resource_id=str(updated.id),
+        actor_user_id=actor.user_id,
+        metadata={"target_user_id": str(user_id), "new_role": payload.role.value},
+    )
     return OrgMemberRead.model_validate(updated)
+
+
+@router.delete(
+    "/{org_id}/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(Role.ADMIN))],
+    summary="Remove a member from the organization (admin+, with owner protection)",
+)
+async def remove_member(
+    org_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db: DbSession,
+    actor: Annotated[Membership, Depends(require_role(Role.ADMIN))],
+) -> None:
+    await _org_service(db).remove_member(
+        org_id=org_id,
+        target_user_id=user_id,
+        actor=actor,
+    )
+    audit = AuditLogRepository(db, org_id)
+    await audit.log(
+        action="member.remove",
+        resource_type="membership",
+        resource_id=str(user_id),
+        actor_user_id=actor.user_id,
+        metadata={"removed_user_id": str(user_id)},
+    )

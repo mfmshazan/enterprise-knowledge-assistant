@@ -39,3 +39,8 @@ class OrgMemberRead(BaseModel):
 
 class MemberRoleUpdate(BaseModel):
     role: Role = Field(description="New role to assign to the member.")
+
+
+class MemberInvite(BaseModel):
+    email: str = Field(min_length=3, max_length=255)
+    role: Role = Field(default=Role.MEMBER, description="Role to assign to the invited user.")

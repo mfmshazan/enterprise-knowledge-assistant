@@ -31,6 +31,7 @@ dependencies = [
     "openai>=1.55",              # embeddings + LLM (default AI provider)
     "qdrant-client>=1.12",       # vector database client
     "langgraph>=0.2",            # multi-agent orchestration (agentic chat)
+    "redis>=5.2.0",              # cache, queues, and rate limiting (Phase 7)
 ]
 
 [project.optional-dependencies]

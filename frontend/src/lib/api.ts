@@ -292,3 +292,121 @@ export const listConversations = (token: string | null, orgId: string) =>
 export const getConversation = (token: string | null, orgId: string, conversationId: string) =>
   apiFetch<ConversationDetail>(`${chatPath(orgId)}/conversations/${conversationId}`, { token });
 
+export const deleteConversation = (token: string | null, orgId: string, conversationId: string) =>
+  apiFetch<void>(`${chatPath(orgId)}/conversations/${conversationId}`, { method: "DELETE", token });
+
+// ---------------------------------------------------------------------------
+// Phase 7: Enterprise Features (Members, Audit Logs, API Keys)
+// ---------------------------------------------------------------------------
+
+export interface OrgMember {
+  id: string;
+  role: Role;
+  created_at: string;
+  user: UserProfile;
+}
+
+export const listOrgMembers = (token: string | null, orgId: string) =>
+  apiFetch<OrgMember[]>(`/api/v1/orgs/${orgId}/members`, { token });
+
+export const inviteOrgMember = (
+  token: string | null,
+  orgId: string,
+  input: { email: string; role?: Role }
+) =>
+  apiFetch<OrgMember>(`/api/v1/orgs/${orgId}/members`, {
+    method: "POST",
+    token,
+    body: input,
+  });
+
+export const updateOrgMemberRole = (
+  token: string | null,
+  orgId: string,
+  userId: string,
+  input: { role: Role }
+) =>
+  apiFetch<OrgMember>(`/api/v1/orgs/${orgId}/members/${userId}`, {
+    method: "PATCH",
+    token,
+    body: input,
+  });
+
+export const removeOrgMember = (token: string | null, orgId: string, userId: string) =>
+  apiFetch<void>(`/api/v1/orgs/${orgId}/members/${userId}`, {
+    method: "DELETE",
+    token,
+  });
+
+export interface AuditLogEntry {
+  id: string;
+  org_id: string;
+  actor_user_id: string | null;
+  action: string;
+  resource_type: string;
+  resource_id: string | null;
+  metadata_: Record<string, unknown>;
+  ip_address: string | null;
+  created_at: string;
+}
+
+export interface AuditLogsResponse {
+  items: AuditLogEntry[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export const listAuditLogs = (
+  token: string | null,
+  orgId: string,
+  params?: { action?: string; page?: number; page_size?: number }
+) => {
+  const query = new URLSearchParams();
+  if (params?.action) query.set("action", params.action);
+  if (params?.page) query.set("page", String(params.page));
+  if (params?.page_size) query.set("page_size", String(params.page_size));
+  const queryString = query.toString();
+  return apiFetch<AuditLogsResponse>(
+    `/api/v1/orgs/${orgId}/audit-logs${queryString ? `?${queryString}` : ""}`,
+    { token }
+  );
+};
+
+export interface ApiKeyItem {
+  id: string;
+  org_id: string;
+  name: string;
+  key_prefix: string;
+  created_by_user_id: string | null;
+  expires_at: string | null;
+  revoked_at: string | null;
+  created_at: string;
+  is_active: boolean;
+}
+
+export interface ApiKeyCreatedResponse extends ApiKeyItem {
+  secret_key: string;
+}
+
+export const listApiKeys = (token: string | null, orgId: string) =>
+  apiFetch<ApiKeyItem[]>(`/api/v1/orgs/${orgId}/api-keys`, { token });
+
+export const createApiKey = (
+  token: string | null,
+  orgId: string,
+  input: { name: string; expires_in_days?: number }
+) =>
+  apiFetch<ApiKeyCreatedResponse>(`/api/v1/orgs/${orgId}/api-keys`, {
+    method: "POST",
+    token,
+    body: input,
+  });
+
+export const revokeApiKey = (token: string | null, orgId: string, keyId: string) =>
+  apiFetch<ApiKeyItem>(`/api/v1/orgs/${orgId}/api-keys/${keyId}`, {
+    method: "DELETE",
+    token,
+  });
+
+

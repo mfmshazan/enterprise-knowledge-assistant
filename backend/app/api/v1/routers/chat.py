@@ -8,14 +8,15 @@ from __future__ import annotations
 
 import json
 import uuid
-
 from collections.abc import AsyncIterator
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import StreamingResponse
 
 from app.api.deps import ChatServiceDep, CurrentMembership, CurrentUser, DbSession
 from app.core.exceptions import NotFoundError
+from app.core.rate_limit import rate_limiter
+from app.repositories.audit_log import AuditLogRepository
 from app.repositories.conversation import ConversationRepository
 from app.schemas.chat import (
     ChatMessageRead,
@@ -28,11 +29,18 @@ from app.schemas.chat import (
 router = APIRouter()
 
 
-@router.post("", response_model=ChatResponse, summary="Ask a question (grounded, cited answer)")
+@router.post(
+    "",
+    response_model=ChatResponse,
+    dependencies=[Depends(rate_limiter(limit=60, window_seconds=60, key_prefix="chat"))],
+    summary="Ask a question (grounded, cited answer)",
+)
 async def send_message(
     payload: ChatRequest,
     service: ChatServiceDep,
     user: CurrentUser,
+    membership: CurrentMembership,
+    db: DbSession,
 ) -> ChatResponse:
     result = await service.send(
         conversation_id=payload.conversation_id,
@@ -41,6 +49,15 @@ async def send_message(
         top_k=payload.top_k,
         mode=payload.mode,
     )
+    audit = AuditLogRepository(db, membership.org_id)
+    await audit.log(
+        action="chat.query",
+        resource_type="conversation",
+        resource_id=str(result.conversation.id),
+        actor_user_id=user.id,
+        metadata={"citations_count": len(result.assistant_message.citations)},
+    )
+    await db.commit()
     return ChatResponse(
         conversation_id=result.conversation.id,
         message=ChatMessageRead.model_validate(result.assistant_message),
@@ -108,3 +125,21 @@ async def get_conversation(
     if conversation is None:
         raise NotFoundError("Conversation not found.")
     return ConversationDetail.model_validate(conversation)
+
+
+@router.delete(
+    "/conversations/{conversation_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete a conversation and all its messages",
+)
+async def delete_conversation(
+    conversation_id: uuid.UUID,
+    db: DbSession,
+    membership: CurrentMembership,
+) -> None:
+    repo = ConversationRepository(db, membership.org_id)
+    conversation = await repo.get(conversation_id)
+    if conversation is None:
+        raise NotFoundError("Conversation not found.")
+    await repo.delete(conversation)
+    await db.commit()

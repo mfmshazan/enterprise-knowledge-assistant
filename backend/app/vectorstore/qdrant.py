@@ -25,7 +25,21 @@ class QdrantVectorStore(VectorStore):
 
     async def ensure_collection(self, dimension: int) -> None:
         if await self._client.collection_exists(self._collection):
-            return
+            try:
+                info = await self._client.get_collection(self._collection)
+                vectors_config = info.config.params.vectors
+                existing_dim = getattr(vectors_config, "size", None)
+                if existing_dim == dimension:
+                    return
+                logger.info(
+                    "recreating_qdrant_collection_for_dimension_change",
+                    old_dim=existing_dim,
+                    new_dim=dimension,
+                )
+                await self._client.delete_collection(self._collection)
+            except Exception:
+                pass
+
         await self._client.create_collection(
             collection_name=self._collection,
             vectors_config=models.VectorParams(size=dimension, distance=models.Distance.COSINE),
@@ -48,36 +62,58 @@ class QdrantVectorStore(VectorStore):
         )
 
     async def delete_by_document(self, org_id: uuid.UUID, document_id: uuid.UUID) -> None:
-        await self._client.delete(
-            collection_name=self._collection,
-            points_selector=models.FilterSelector(
-                filter=models.Filter(
-                    must=[
-                        models.FieldCondition(
-                            key="org_id", match=models.MatchValue(value=str(org_id))
-                        ),
-                        models.FieldCondition(
-                            key="document_id", match=models.MatchValue(value=str(document_id))
-                        ),
-                    ]
-                )
-            ),
-        )
+        try:
+            if not await self._client.collection_exists(self._collection):
+                return
+        except Exception:
+            return
+
+        try:
+            await self._client.delete(
+                collection_name=self._collection,
+                points_selector=models.FilterSelector(
+                    filter=models.Filter(
+                        must=[
+                            models.FieldCondition(
+                                key="org_id", match=models.MatchValue(value=str(org_id))
+                            ),
+                            models.FieldCondition(
+                                key="document_id", match=models.MatchValue(value=str(document_id))
+                            ),
+                        ]
+                    )
+                ),
+            )
+        except Exception as e:
+            if "not found" in str(e).lower() or "doesn't exist" in str(e).lower():
+                return
+            raise
 
     async def search(
         self, org_id: uuid.UUID, query_vector: list[float], *, limit: int = 5
     ) -> list[SearchHit]:
-        result = await self._client.query_points(
-            collection_name=self._collection,
-            query=query_vector,
-            limit=limit,
-            query_filter=models.Filter(
-                must=[
-                    models.FieldCondition(key="org_id", match=models.MatchValue(value=str(org_id)))
-                ]
-            ),
-        )
-        return [
-            SearchHit(id=uuid.UUID(str(point.id)), score=point.score, payload=point.payload or {})
-            for point in result.points
-        ]
+        try:
+            if not await self._client.collection_exists(self._collection):
+                return []
+        except Exception:
+            return []
+
+        try:
+            result = await self._client.query_points(
+                collection_name=self._collection,
+                query=query_vector,
+                limit=limit,
+                query_filter=models.Filter(
+                    must=[
+                        models.FieldCondition(key="org_id", match=models.MatchValue(value=str(org_id)))
+                    ]
+                ),
+            )
+            return [
+                SearchHit(id=uuid.UUID(str(point.id)), score=point.score, payload=point.payload or {})
+                for point in result.points
+            ]
+        except Exception as e:
+            if "not found" in str(e).lower() or "doesn't exist" in str(e).lower():
+                return []
+            raise

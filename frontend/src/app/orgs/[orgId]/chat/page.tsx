@@ -12,6 +12,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { MessageBubble } from "@/components/chat/message-bubble";
 import {
+  deleteConversation,
   streamChatMessage,
   type AgentStepTrace,
   type ApiError,
@@ -103,6 +104,21 @@ export default function ChatPage() {
     }
   };
 
+  const handleDeleteConversation = async (cId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to delete this conversation?")) return;
+    try {
+      const token = await getToken();
+      await deleteConversation(token, orgId, cId);
+      if (conversationId === cId) {
+        setConversationId(null);
+      }
+      void queryClient.invalidateQueries({ queryKey: ["conversations", orgId] });
+    } catch {
+      alert("Failed to delete conversation.");
+    }
+  };
+
   const messages: ChatMessageItem[] = (conversation.data?.messages ?? []).map((m) => ({
     ...m,
     traces: localTracesMap[m.id] ?? m.traces,
@@ -134,17 +150,29 @@ export default function ChatPage() {
           </div>
           <ul className="space-y-1">
             {(conversations.data ?? []).map((c) => (
-              <li key={c.id}>
+              <li
+                key={c.id}
+                className={`group flex items-center justify-between rounded-lg px-2.5 py-1 text-sm transition-colors hover:bg-white/5 ${
+                  c.id === conversationId ? "bg-white/10 font-medium text-white" : "text-gray-300"
+                }`}
+              >
                 <button
                   onClick={() => {
                     setConversationId(c.id);
                     setErrorMessage(null);
                   }}
-                  className={`w-full truncate rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-white/5 ${
-                    c.id === conversationId ? "bg-white/10 font-medium text-white" : "text-gray-300"
-                  }`}
+                  className="flex-1 truncate py-1 text-left"
+                  title={c.title}
                 >
                   {c.title}
+                </button>
+                <button
+                  type="button"
+                  onClick={(e) => handleDeleteConversation(c.id, e)}
+                  title="Delete conversation"
+                  className="ml-1.5 opacity-0 group-hover:opacity-100 rounded p-1 text-xs text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-all"
+                >
+                  ✕
                 </button>
               </li>
             ))}

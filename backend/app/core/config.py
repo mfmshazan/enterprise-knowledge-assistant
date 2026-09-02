@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     """Strongly-typed application settings, loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",  # tolerate unrelated env vars (e.g. frontend NEXT_PUBLIC_*)
@@ -43,7 +43,9 @@ class Settings(BaseSettings):
 
     # ---------- Backend / API ----------
     SECRET_KEY: str = Field(default="change-me", min_length=8)
-    BACKEND_CORS_ORIGINS: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    BACKEND_CORS_ORIGINS: list[str] | str = Field(
+        default_factory=lambda: ["http://localhost:3000"]
+    )
 
     # ---------- Datastores ----------
     DATABASE_URL: str = "postgresql+asyncpg://eka:eka_password@localhost:5432/eka"
@@ -98,13 +100,39 @@ class Settings(BaseSettings):
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     EMBEDDING_DIM: int = 1536
 
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @field_validator("BACKEND_CORS_ORIGINS", mode="after")
     @classmethod
-    def _split_cors(cls, value: object) -> object:
-        """Allow CORS origins as a comma-separated string in the env file."""
-        if isinstance(value, str) and not value.startswith("["):
+    def _normalize_cors(cls, value: object) -> list[str]:
+        """Allow CORS origins as a list, JSON string, or comma-separated string."""
+        if isinstance(value, str):
+            if value.startswith("[") and value.endswith("]"):
+                import json
+
+                try:
+                    parsed = json.loads(value)
+                    if isinstance(parsed, list):
+                        return [str(x).strip() for x in parsed if str(x).strip()]
+                except Exception:
+                    pass
             return [origin.strip() for origin in value.split(",") if origin.strip()]
-        return value
+        if isinstance(value, list):
+            return [str(origin).strip() for origin in value if str(origin).strip()]
+        return ["http://localhost:3000"]
+
+    @field_validator("DATABASE_URL", mode="after")
+    @classmethod
+    def _normalize_database_url(cls, value: str) -> str:
+        """Automatically normalize Neon/Supabase/Render Postgres URLs for asyncpg."""
+        url = value.strip()
+        if url.startswith("postgres://"):
+            url = url.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif url.startswith("postgresql://") and not url.startswith("postgresql+asyncpg://"):
+            url = url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        url = url.replace("sslmode=require", "ssl=require")
+        url = url.replace("&channel_binding=require", "")
+        url = url.replace("?channel_binding=require&", "?")
+        url = url.replace("?channel_binding=require", "")
+        return url
 
     @property
     def is_production(self) -> bool:

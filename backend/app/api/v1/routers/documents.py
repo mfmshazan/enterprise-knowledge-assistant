@@ -13,9 +13,10 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, UploadFile, status
 
-from app.api.deps import CurrentUser, DocumentServiceDep, require_role
+from app.api.deps import CurrentMembership, CurrentUser, DbSession, DocumentServiceDep, require_role
 from app.core.exceptions import ValidationError
 from app.models.enums import Role
+from app.repositories.audit_log import AuditLogRepository
 from app.schemas.document import DocumentRead, UrlIngestRequest
 
 router = APIRouter()
@@ -30,6 +31,8 @@ router = APIRouter()
 async def upload_document(
     service: DocumentServiceDep,
     user: CurrentUser,
+    membership: CurrentMembership,
+    db: DbSession,
     file: Annotated[UploadFile, File(description="The document file to ingest")],
 ) -> DocumentRead:
     if not file.filename:
@@ -41,6 +44,15 @@ async def upload_document(
         content_type=file.content_type,
         uploaded_by=user.id,
     )
+    audit = AuditLogRepository(db, membership.org_id)
+    await audit.log(
+        action="document.upload",
+        resource_type="document",
+        resource_id=str(document.id),
+        actor_user_id=user.id,
+        metadata={"title": document.title, "filename": file.filename},
+    )
+    await db.commit()
     return DocumentRead.model_validate(document)
 
 
@@ -54,10 +66,21 @@ async def ingest_url(
     payload: UrlIngestRequest,
     service: DocumentServiceDep,
     user: CurrentUser,
+    membership: CurrentMembership,
+    db: DbSession,
 ) -> DocumentRead:
     document = await service.create_from_url(
         url=payload.url, title=payload.title, uploaded_by=user.id
     )
+    audit = AuditLogRepository(db, membership.org_id)
+    await audit.log(
+        action="document.upload_url",
+        resource_type="document",
+        resource_id=str(document.id),
+        actor_user_id=user.id,
+        metadata={"url": payload.url, "title": payload.title},
+    )
+    await db.commit()
     return DocumentRead.model_validate(document)
 
 
@@ -79,5 +102,20 @@ async def get_document(document_id: uuid.UUID, service: DocumentServiceDep) -> D
     dependencies=[Depends(require_role(Role.ADMIN))],
     summary="Delete a document (admin+)",
 )
-async def delete_document(document_id: uuid.UUID, service: DocumentServiceDep) -> None:
+async def delete_document(
+    document_id: uuid.UUID,
+    service: DocumentServiceDep,
+    user: CurrentUser,
+    membership: CurrentMembership,
+    db: DbSession,
+) -> None:
     await service.delete(document_id)
+    audit = AuditLogRepository(db, membership.org_id)
+    await audit.log(
+        action="document.delete",
+        resource_type="document",
+        resource_id=str(document_id),
+        actor_user_id=user.id,
+        metadata={"deleted_document_id": str(document_id)},
+    )
+    await db.commit()

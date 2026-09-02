@@ -74,9 +74,9 @@ class IngestionService:
             if not chunks:
                 raise ValueError("No extractable text found in document.")
 
+            await self.vector_store.ensure_collection(self.embedder.dimension)
             await self._clear_previous(document)
 
-            await self.vector_store.ensure_collection(self.embedder.dimension)
             vectors = await self.embedder.embed_documents(chunks)
 
             points, rows = self._build_records(document, chunks, vectors)

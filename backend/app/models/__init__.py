@@ -5,6 +5,8 @@ Alembic autogenerate or `create_all` runs. Anything that needs "all tables"
 (migrations env, test fixtures) imports from this package.
 """
 
+from app.models.api_key import ApiKey
+from app.models.audit_log import AuditLog
 from app.models.citation import Citation
 from app.models.conversation import Conversation
 from app.models.document import Document
@@ -16,6 +18,8 @@ from app.models.organization import Organization
 from app.models.user import User
 
 __all__ = [
+    "ApiKey",
+    "AuditLog",
     "Citation",
     "Conversation",
     "Document",

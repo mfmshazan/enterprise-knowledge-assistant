@@ -90,3 +90,59 @@ class OrganizationService:
         target.role = new_role
         await self.memberships.session.flush()
         return target
+
+    async def remove_member(
+        self,
+        *,
+        org_id: uuid.UUID,
+        target_user_id: uuid.UUID,
+        actor: Membership,
+    ) -> None:
+        target = await self.memberships.get_by_user_and_org(target_user_id, org_id)
+        if target is None:
+            raise NotFoundError("Member not found in this organization.")
+
+        if target.role == Role.OWNER:
+            if actor.role != Role.OWNER:
+                raise PermissionDeniedError("Only an owner can remove another owner.")
+            members = await self.memberships.list_for_org(org_id)
+            owner_count = sum(1 for m in members if m.role == Role.OWNER)
+            if owner_count <= 1:
+                raise ConflictError("Cannot remove the last owner of the organization.")
+
+        await self.memberships.session.delete(target)
+        await self.memberships.session.flush()
+
+    async def add_or_invite_member(
+        self,
+        *,
+        org_id: uuid.UUID,
+        email: str,
+        role: Role = Role.MEMBER,
+        actor: Membership,
+    ) -> Membership:
+        if role == Role.OWNER and actor.role != Role.OWNER:
+            raise PermissionDeniedError("Only an owner can grant the owner role.")
+
+        from app.repositories.user import UserRepository
+        user_repo = UserRepository(self.memberships.session)
+        clean_email = email.strip().lower()
+        user = await user_repo.get_by_email(clean_email)
+        if user is None:
+            user = User(
+                external_id=f"invited:{clean_email}",
+                email=clean_email,
+                full_name=clean_email.split("@")[0],
+            )
+            user_repo.add(user)
+            await self.memberships.session.flush()
+
+        existing = await self.memberships.get_by_user_and_org_with_user(user.id, org_id)
+        if existing is not None:
+            raise ConflictError("User is already a member of this organization.")
+
+        membership = Membership(user_id=user.id, org_id=org_id, role=role)
+        self.memberships.add(membership)
+        await self.memberships.session.flush()
+        return await self.memberships.get_by_user_and_org_with_user(user.id, org_id) or membership
+
