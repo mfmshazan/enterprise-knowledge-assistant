@@ -111,12 +111,12 @@ class Settings(BaseSettings):
                 try:
                     parsed = json.loads(value)
                     if isinstance(parsed, list):
-                        return [str(x).strip() for x in parsed if str(x).strip()]
+                        return [str(x).strip().rstrip("/") for x in parsed if str(x).strip()]
                 except Exception:
                     pass
-            return [origin.strip() for origin in value.split(",") if origin.strip()]
+            return [origin.strip().rstrip("/") for origin in value.split(",") if origin.strip()]
         if isinstance(value, list):
-            return [str(origin).strip() for origin in value if str(origin).strip()]
+            return [str(origin).strip().rstrip("/") for origin in value if str(origin).strip()]
         return ["http://localhost:3000"]
 
     @field_validator("DATABASE_URL", mode="after")
