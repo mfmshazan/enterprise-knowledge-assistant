@@ -63,9 +63,12 @@ def create_app() -> FastAPI:
     # Order matters: request-context middleware first so its request_id is bound
     # for everything downstream, including CORS-handled requests.
     app.add_middleware(RequestContextMiddleware)
+    cors_origins = settings.BACKEND_CORS_ORIGINS
+    allow_all = "*" in cors_origins or not cors_origins
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.BACKEND_CORS_ORIGINS,
+        allow_origins=[] if allow_all else cors_origins,
+        allow_origin_regex=r"^https?://.*" if allow_all else None,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
