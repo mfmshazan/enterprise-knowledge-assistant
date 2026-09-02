@@ -103,3 +103,26 @@ async def test_agent_handles_no_context(
 
     assert result.answer
     assert result.chunks == []
+
+
+async def test_agent_answer_stream_yields_steps_and_result(
+    db_sessionmaker: async_sessionmaker[AsyncSession],
+    vector_store: InMemoryVectorStore,
+) -> None:
+    org_id = uuid.uuid4()
+    async with db_sessionmaker() as session:
+        retrieval = await _retrieval_with_doc(session, vector_store, org_id)
+        engine = AgenticAnswerEngine(retrieval, FakeLLMProvider(), max_attempts=2)
+        events = [item async for item in engine.answer_stream(CONTENT, top_k=3)]
+
+    steps = [e["step"] for e in events if e.get("event") == "step"]
+    assert "start" in steps
+    assert "plan" in steps
+    assert "retrieve" in steps
+    assert "generate" in steps
+    assert "verify" in steps
+
+    results = [e["data"] for e in events if e.get("event") == "result"]
+    assert len(results) == 1
+    assert results[0].answer
+    assert len(results[0].chunks) > 0

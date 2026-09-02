@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -17,6 +18,13 @@ class ChatRequest(BaseModel):
     )
     message: str = Field(min_length=1, max_length=4000)
     top_k: int = Field(default=DEFAULT_TOP_K, ge=1, le=MAX_TOP_K)
+    mode: Literal["linear", "agentic"] | None = Field(
+        default=None,
+        description=(
+            "Override answer engine mode ('linear' for single-pass RAG, "
+            "'agentic' for multi-step LangGraph with verification)."
+        ),
+    )
 
 
 class CitationRead(BaseModel):

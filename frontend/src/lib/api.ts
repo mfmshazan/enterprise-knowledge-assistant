@@ -163,6 +163,8 @@ export async function uploadDocument(
 
 // ---------- Chat ----------
 
+export type ChatMode = "linear" | "agentic";
+
 export interface Citation {
   rank: number;
   document_id: string | null;
@@ -171,12 +173,25 @@ export interface Citation {
   snippet: string;
 }
 
+export interface AgentStepTrace {
+  step: string;
+  status?: string;
+  search_query?: string;
+  chunks_count?: number;
+  sources?: string[];
+  grounded?: boolean;
+  attempt?: number;
+  max_attempts?: number;
+  [key: string]: unknown;
+}
+
 export interface ChatMessageItem {
   id: string;
   role: "user" | "assistant";
   content: string;
   created_at: string;
   citations: Citation[];
+  traces?: AgentStepTrace[];
 }
 
 export interface ChatSendResponse {
@@ -202,11 +217,78 @@ const chatPath = (orgId: string) => `/api/v1/orgs/${orgId}/chat`;
 export const sendChatMessage = (
   token: string | null,
   orgId: string,
-  input: { message: string; conversation_id?: string; top_k?: number },
+  input: { message: string; conversation_id?: string; top_k?: number; mode?: ChatMode },
 ) => apiFetch<ChatSendResponse>(chatPath(orgId), { method: "POST", token, body: input });
+
+export async function streamChatMessage(
+  token: string | null,
+  orgId: string,
+  input: { message: string; conversation_id?: string; top_k?: number; mode?: ChatMode },
+  onStep?: (step: AgentStepTrace) => void,
+): Promise<ChatSendResponse> {
+  const res = await fetch(`${API_BASE_URL}${chatPath(orgId)}/stream`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(input),
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => null);
+    const message = (errorData?.error?.message as string | undefined) ?? res.statusText;
+    throw new ApiError(res.status, message, errorData?.error?.code);
+  }
+
+  if (!res.body) {
+    throw new ApiError(500, "Readable stream not supported or empty body.");
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let finalResult: ChatSendResponse | null = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n\n");
+    buffer = lines.pop() ?? "";
+
+    for (const block of lines) {
+      const line = block.trim();
+      if (!line.startsWith("data: ")) continue;
+      const jsonStr = line.slice(6);
+      try {
+        const payload = JSON.parse(jsonStr);
+        if (payload.event === "step") {
+          onStep?.({ step: payload.step, ...(payload.data ?? {}) });
+        } else if (payload.event === "done") {
+          finalResult = {
+            conversation_id: payload.conversation_id,
+            message: payload.message,
+          };
+        } else if (payload.event === "error") {
+          throw new ApiError(500, payload.error ?? "Streaming error");
+        }
+      } catch (err) {
+        if (err instanceof ApiError) throw err;
+      }
+    }
+  }
+
+  if (!finalResult) {
+    throw new ApiError(500, "Stream concluded without final message payload.");
+  }
+
+  return finalResult;
+}
 
 export const listConversations = (token: string | null, orgId: string) =>
   apiFetch<ConversationSummary[]>(`${chatPath(orgId)}/conversations`, { token });
 
 export const getConversation = (token: string | null, orgId: string, conversationId: string) =>
   apiFetch<ConversationDetail>(`${chatPath(orgId)}/conversations/${conversationId}`, { token });
+

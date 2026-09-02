@@ -177,7 +177,12 @@ def get_chat_service(
         engine = AgenticAnswerEngine(retrieval, llm, max_attempts=settings.AGENT_MAX_ATTEMPTS)
     else:
         engine = LinearAnswerEngine(retrieval, llm)
-    return ChatService(ConversationRepository(db, membership.org_id), engine)
+    return ChatService(
+        ConversationRepository(db, membership.org_id),
+        engine,
+        retrieval=retrieval,
+        llm=llm,
+    )
 
 
 ChatServiceDep = Annotated[ChatService, Depends(get_chat_service)]

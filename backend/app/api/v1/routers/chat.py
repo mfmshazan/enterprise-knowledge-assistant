@@ -6,9 +6,13 @@ past conversations; and load a conversation's full history. Members only.
 
 from __future__ import annotations
 
+import json
 import uuid
 
+from collections.abc import AsyncIterator
+
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 
 from app.api.deps import ChatServiceDep, CurrentMembership, CurrentUser, DbSession
 from app.core.exceptions import NotFoundError
@@ -35,10 +39,44 @@ async def send_message(
         user=user,
         message=payload.message,
         top_k=payload.top_k,
+        mode=payload.mode,
     )
     return ChatResponse(
         conversation_id=result.conversation.id,
         message=ChatMessageRead.model_validate(result.assistant_message),
+    )
+
+
+@router.post(
+    "/stream", summary="Ask a question with real-time SSE stream of agent steps and citations"
+)
+async def stream_message(
+    payload: ChatRequest,
+    service: ChatServiceDep,
+    user: CurrentUser,
+) -> StreamingResponse:
+    async def event_generator() -> AsyncIterator[str]:
+        try:
+            async for item in service.send_stream(
+                conversation_id=payload.conversation_id,
+                user=user,
+                message=payload.message,
+                top_k=payload.top_k,
+                mode=payload.mode,
+            ):
+                yield f"data: {json.dumps(item)}\n\n"
+        except Exception as e:
+            error_payload = {"event": "error", "error": str(e)}
+            yield f"data: {json.dumps(error_payload)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
 
 

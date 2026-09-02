@@ -159,3 +159,43 @@ async def test_unknown_conversation_returns_404(client: AsyncClient) -> None:
         f"{_chat_url(org_id)}/conversations/{uuid.uuid4()}", headers=auth(OWNER)
     )
     assert resp.status_code == 404
+
+
+async def test_chat_stream_returns_sse_events(
+    client: AsyncClient,
+    db_sessionmaker: async_sessionmaker[AsyncSession],
+    vector_store: InMemoryVectorStore,
+) -> None:
+    org_id = await _org_id(client, OWNER)
+    await _seed(db_sessionmaker, vector_store, uuid.UUID(org_id))
+
+    resp = await client.post(
+        f"{_chat_url(org_id)}/stream",
+        json={"message": "How much leave?", "mode": "agentic"},
+        headers=auth(OWNER),
+    )
+    assert resp.status_code == 200
+    assert "text/event-stream" in resp.headers["content-type"]
+    text = resp.text
+    assert "data: " in text
+    assert '"event": "done"' in text
+    assert '"role": "assistant"' in text
+
+
+async def test_chat_with_explicit_linear_mode(
+    client: AsyncClient,
+    db_sessionmaker: async_sessionmaker[AsyncSession],
+    vector_store: InMemoryVectorStore,
+) -> None:
+    org_id = await _org_id(client, OWNER)
+    await _seed(db_sessionmaker, vector_store, uuid.UUID(org_id))
+
+    resp = await client.post(
+        _chat_url(org_id),
+        json={"message": "How much leave?", "mode": "linear"},
+        headers=auth(OWNER),
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["message"]["content"]
+    assert len(body["message"]["citations"]) == 1

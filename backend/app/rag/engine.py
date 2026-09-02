@@ -15,7 +15,9 @@ touches only the factory — the rest of the app is unchanged.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import AsyncIterator
 from dataclasses import dataclass
+from typing import Any
 
 from app.llm.base import LLMProvider
 from app.rag.prompts import build_grounded_messages
@@ -33,6 +35,12 @@ class AnswerEngine(ABC):
     async def answer(self, question: str, *, top_k: int) -> AnswerResult:
         """Produce an answer to `question` plus the chunks that grounded it."""
 
+    @abstractmethod
+    async def answer_stream(self, question: str, *, top_k: int) -> AsyncIterator[dict[str, Any]]:
+        """Yield real-time agent/retrieval steps and conclude with the AnswerResult."""
+        if False:
+            yield {}
+
 
 class LinearAnswerEngine(AnswerEngine):
     def __init__(self, retrieval: RetrievalService, llm: LLMProvider) -> None:
@@ -44,3 +52,28 @@ class LinearAnswerEngine(AnswerEngine):
         prompt = build_grounded_messages(question, chunks)
         answer = await self.llm.generate(prompt)
         return AnswerResult(answer=answer, chunks=chunks)
+
+    async def answer_stream(self, question: str, *, top_k: int) -> AsyncIterator[dict[str, Any]]:
+        yield {
+            "event": "step",
+            "step": "retrieve",
+            "data": {"status": "Searching knowledge base for relevant context...", "top_k": top_k},
+        }
+        chunks = await self.retrieval.search(question, top_k=top_k)
+        yield {
+            "event": "step",
+            "step": "retrieve",
+            "data": {
+                "status": f"Found {len(chunks)} relevant context passages",
+                "chunks_count": len(chunks),
+                "sources": [c.document_title for c in chunks],
+            },
+        }
+        yield {
+            "event": "step",
+            "step": "generate",
+            "data": {"status": "Generating grounded answer with citations..."},
+        }
+        prompt = build_grounded_messages(question, chunks)
+        answer = await self.llm.generate(prompt)
+        yield {"event": "result", "data": AnswerResult(answer=answer, chunks=chunks)}
