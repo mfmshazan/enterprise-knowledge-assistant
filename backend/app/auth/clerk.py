@@ -81,10 +81,17 @@ class ClerkAuthProvider(AuthProvider):
         if isinstance(org_role, str):
             org_role = org_role.removeprefix("org:")  # "org:admin" -> "admin"
 
+        email = (
+            claims.get("email")
+            or claims.get("email_address")
+            or claims.get("primary_email_address")
+            or claims.get("preferred_username")
+        )
+
         return AuthIdentity(
             subject=str(claims["sub"]),
-            email=claims.get("email"),
-            full_name=claims.get("name") or claims.get("full_name"),
+            email=email,
+            full_name=claims.get("name") or claims.get("full_name") or claims.get("first_name"),
             org_external_id=claims.get("org_id"),
             org_slug=claims.get("org_slug"),
             org_role=org_role,

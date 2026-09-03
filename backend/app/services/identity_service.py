@@ -52,16 +52,11 @@ class IdentityService:
         user = await self.users.get_by_external_id(identity.subject)
 
         if user is None:
-            if not identity.email:
-                # We cannot create a user without an email (unique, required).
-                # For Clerk, add an `email` custom claim to the session token.
-                raise AuthenticationError(
-                    "Authenticated token has no email claim; cannot provision user."
-                )
+            email = identity.email or f"{identity.subject}@clerk.user"
             user = User(
                 external_id=identity.subject,
-                email=identity.email,
-                full_name=identity.full_name,
+                email=email,
+                full_name=identity.full_name or "User",
             )
             self.users.add(user)
             await self.users.session.flush()

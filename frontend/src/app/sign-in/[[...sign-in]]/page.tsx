@@ -88,7 +88,16 @@ function DevSignInForm() {
 export default function SignInPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-6 py-16">
-      {AUTH_MODE === "clerk" ? <SignIn /> : <DevSignInForm />}
+      {AUTH_MODE === "clerk" ? (
+        <SignIn
+          fallbackRedirectUrl="/dashboard"
+          forceRedirectUrl="/dashboard"
+          signUpFallbackRedirectUrl="/dashboard"
+          signUpForceRedirectUrl="/dashboard"
+        />
+      ) : (
+        <DevSignInForm />
+      )}
     </main>
   );
 }
