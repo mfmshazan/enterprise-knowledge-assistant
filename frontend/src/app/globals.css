@@ -1,21 +1,46 @@
 @import "tailwindcss";
 
-/* Tailwind v4 CSS-first theme. Design tokens live here rather than in a JS
-   config. shadcn/ui components (added in later phases) read these variables. */
+/* Zendesk-inspired Clean Modern Theme */
 @theme {
-  --color-background: #0b0f17;
-  --color-foreground: #e6edf3;
-  --color-muted: #9aa4b2;
+  --color-background: #f8fafc;
+  --color-foreground: #0f172a;
+  --color-muted: #64748b;
   --color-accent: #6366f1;
+  --color-card: #ffffff;
+  --color-border: #e2e8f0;
 }
 
 html,
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+  min-height: 100vh;
 }
 
 body {
   font-family:
-    ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Zendesk Ambient Canvas Background */
+.ambient-canvas {
+  background: radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.25) 0%, transparent 40%),
+              radial-gradient(circle at 90% 10%, rgba(236, 72, 153, 0.22) 0%, transparent 45%),
+              radial-gradient(circle at 50% 50%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+              #f8fafc;
+  min-height: 100vh;
+}
+
+/* Zendesk Card Surfaces */
+.zendesk-card {
+  background-color: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 1.25rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.zendesk-card:hover {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
 }
