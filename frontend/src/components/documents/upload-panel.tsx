@@ -23,7 +23,7 @@ export function UploadPanel({ orgId }: { orgId: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-5">
+    <div className="h-full flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-4">
       <div>
         <h3 className="text-sm font-bold text-slate-900 tracking-tight">Add Knowledge</h3>
         <p className="text-xs text-slate-500 mt-0.5">

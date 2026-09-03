@@ -1,78 +1,88 @@
 import Link from "next/link";
-
 import { HealthStatus } from "@/components/health-status";
 
 export default function Home() {
   return (
-    <main className="mx-auto flex min-h-screen max-w-4xl flex-col justify-center gap-10 px-6 py-16">
-      <header className="space-y-4">
-        <div className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-950/30 px-3.5 py-1 text-xs font-medium text-cyan-300">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75"></span>
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500"></span>
-          </span>
-          Phase 6 Active: LangGraph Agentic AI &amp; Self-Correcting RAG
-        </div>
+    <div className="min-h-screen ambient-canvas flex flex-col justify-between py-12 px-6">
+      <main className="mx-auto flex max-w-4xl flex-col justify-center gap-10">
+        {/* Top Tag */}
+        <header className="space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200/80 bg-white/80 px-3.5 py-1 text-xs font-semibold text-indigo-700 shadow-xs backdrop-blur-sm">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-600"></span>
+            </span>
+            LangGraph Multi-Agent AI &amp; Self-Correcting RAG
+          </div>
 
-        <h1 className="text-4xl font-bold tracking-tight text-white sm:text-5xl">
-          🧠 Enterprise Knowledge Assistant
-        </h1>
-        <p className="max-w-2xl text-base text-[color:var(--color-muted)] sm:text-lg">
-          Upload documents and websites, then let your organization query and receive
-          <strong className="text-white"> fact-checked, cited answers</strong> powered by a
-          multi-agent LangGraph workflow with real-time reasoning verification.
-        </p>
-      </header>
-
-      <div className="flex flex-wrap gap-3.5">
-        <Link
-          href="/dashboard"
-          className="flex items-center gap-2 rounded-xl bg-[color:var(--color-accent)] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-[color:var(--color-accent)]/20 transition-transform hover:-translate-y-0.5 hover:opacity-95"
-        >
-          <span>Go to dashboard</span>
-          <span>→</span>
-        </Link>
-        <Link
-          href="/sign-in"
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-white/10"
-        >
-          <span>Sign in / Switch User</span>
-        </Link>
-      </div>
-
-      <section className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-sm">
-          <div className="mb-2 text-2xl">📥</div>
-          <h3 className="text-sm font-semibold text-white">Ingestion Pipeline</h3>
-          <p className="mt-1 text-xs text-[color:var(--color-muted)]">
-            PDF, DOCX, TXT, and Web scraping with recursive chunking and vector indexing.
+          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+            🧠 Enterprise Knowledge Assistant
+          </h1>
+          <p className="max-w-2xl text-base text-slate-600 leading-relaxed sm:text-lg">
+            Upload enterprise documents and web knowledge, then let your organization query and receive{" "}
+            <strong className="text-slate-900 font-semibold">fact-checked, cited answers</strong> powered by a
+            multi-agent LangGraph workflow with real-time reasoning verification.
           </p>
+        </header>
+
+        {/* Action Buttons */}
+        <div className="flex flex-wrap items-center gap-3.5">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95"
+          >
+            <span>Go to dashboard</span>
+            <span>→</span>
+          </Link>
+          <Link
+            href="/sign-in"
+            className="flex items-center gap-2 rounded-xl border border-slate-200/90 bg-white px-6 py-3 text-sm font-semibold text-slate-700 shadow-xs transition-all hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+          >
+            <span>Sign in / Switch User</span>
+          </Link>
         </div>
 
-        <div className="rounded-2xl border border-cyan-500/20 bg-cyan-950/10 p-5 backdrop-blur-sm">
-          <div className="mb-2 text-2xl">🧠</div>
-          <h3 className="text-sm font-semibold text-cyan-200">LangGraph Agents</h3>
-          <p className="mt-1 text-xs text-[color:var(--color-muted)]">
-            Multi-agent cycle (Planner → Retriever → Generator → Verifier) eliminating hallucinations.
-          </p>
-        </div>
+        {/* Feature Cards Grid */}
+        <section className="grid gap-4 sm:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-slate-300">
+            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-xl text-indigo-600">
+              📥
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">Ingestion Pipeline</h3>
+            <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+              PDF, DOCX, TXT, and Web scraping with recursive chunking and 3072-dimensional vector indexing.
+            </p>
+          </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-5 backdrop-blur-sm">
-          <div className="mb-2 text-2xl">📚</div>
-          <h3 className="text-sm font-semibold text-white">Verified Citations</h3>
-          <p className="mt-1 text-xs text-[color:var(--color-muted)]">
-            Traceable source passages and rank attribution linked directly to each assistant answer.
-          </p>
-        </div>
-      </section>
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5 shadow-xs transition-all hover:shadow-md hover:border-indigo-300">
+            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-xl text-indigo-700">
+              🧠
+            </div>
+            <h3 className="text-sm font-bold text-indigo-950">LangGraph Agents</h3>
+            <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
+              Multi-agent cycle (Planner → Retriever → Generator → Verifier) eliminating hallucinations.
+            </p>
+          </div>
 
-      <HealthStatus />
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-slate-300">
+            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-xl text-emerald-600">
+              📚
+            </div>
+            <h3 className="text-sm font-bold text-slate-900">Verified Citations</h3>
+            <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
+              Traceable source passages and rank attribution linked directly to each assistant answer.
+            </p>
+          </div>
+        </section>
 
-      <footer className="flex items-center justify-between border-t border-white/10 pt-4 text-xs text-[color:var(--color-muted)]">
+        {/* System Health */}
+        <HealthStatus />
+      </main>
+
+      <footer className="mx-auto w-full max-w-4xl flex items-center justify-between border-t border-slate-200 pt-6 text-xs text-slate-400">
         <span>Enterprise Knowledge Assistant</span>
-        <span>Phases 1–6 Complete • Next: Phase 7 (Enterprise Features)</span>
+        <span>Secure Multi-Tenant RAG • Production Ready</span>
       </footer>
-    </main>
+    </div>
   );
 }
-

@@ -31,15 +31,10 @@ export function AiAssistantBanner({ userName, orgId }: AiAssistantBannerProps) {
 
   return (
     <div className="space-y-4">
-      {/* Greeting with sunrise icon */}
-      <div className="flex items-center gap-2">
-        <span className="text-2xl" role="img" aria-label="sunrise">
-          🌅
-        </span>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
-          {getGreeting()}! {formattedName}
-        </h1>
-      </div>
+      {/* Greeting (no emoji) */}
+      <h1 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
+        {getGreeting()}! {formattedName}
+      </h1>
 
       {/* AI Assistant Search & Prompt Bar */}
       <form

@@ -25,8 +25,9 @@ export function TasksWidget({ documents, orgId }: TasksWidgetProps) {
   const displayDocs = documents.slice(0, 5);
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-3.5">
-      {/* Header */}
+    <div className="h-full flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-3.5">
+      <div className="space-y-3.5">
+        {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-bold text-slate-800 tracking-tight">Knowledge Tasks</h2>
         <span className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer">
@@ -97,8 +98,9 @@ export function TasksWidget({ documents, orgId }: TasksWidgetProps) {
           ))
         )}
       </div>
+      </div>
 
-      <div className="pt-1">
+      <div className="pt-2">
         <Link
           href={`/orgs/${orgId}/chat`}
           className="block w-full text-center rounded-xl bg-slate-50 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"

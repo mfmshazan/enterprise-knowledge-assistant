@@ -1,12 +1,7 @@
 "use client";
 
-/**
- * Chat workspace: ask questions over the org's documents and get grounded,
- * cited answers. Left rail lists conversations; the main pane is the thread.
- */
-
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -25,11 +20,13 @@ import { useConversation, useConversations } from "@/lib/chat";
 export default function ChatPage() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
   const orgId = useParams<{ orgId: string }>().orgId;
   const queryClient = useQueryClient();
 
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState(initialQuery);
   const [chatMode, setChatMode] = useState<ChatMode>("agentic");
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamSteps, setStreamSteps] = useState<AgentStepTrace[]>([]);
@@ -50,8 +47,8 @@ export default function ChatPage() {
 
   if (!isLoaded || !isSignedIn) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        <p className="text-[color:var(--color-muted)]">Loading…</p>
+      <main className="flex min-h-screen items-center justify-center ambient-canvas">
+        <p className="text-slate-500 font-medium text-sm">Loading chat…</p>
       </main>
     );
   }
@@ -81,8 +78,13 @@ export default function ChatPage() {
         (step) => {
           collectedSteps.push(step);
           setStreamSteps([...collectedSteps]);
-        },
+        }
       );
+
+      if (!conversationId) {
+        setConversationId(result.conversation_id);
+        await queryClient.invalidateQueries({ queryKey: ["conversations", orgId] });
+      }
 
       if (result.message?.id && collectedSteps.length > 0) {
         setLocalTracesMap((prev) => ({
@@ -91,213 +93,222 @@ export default function ChatPage() {
         }));
       }
 
-      setConversationId(result.conversation_id);
-      void queryClient.invalidateQueries({ queryKey: ["conversations", orgId] });
-      void queryClient.invalidateQueries({
+      await queryClient.invalidateQueries({
         queryKey: ["conversation", orgId, result.conversation_id],
       });
     } catch (err) {
-      setErrorMessage((err as ApiError).message || "An unexpected error occurred.");
+      setErrorMessage((err as ApiError).message ?? "Failed to stream message");
     } finally {
       setIsStreaming(false);
       setStreamSteps([]);
     }
   };
 
-  const handleDeleteConversation = async (cId: string, e: React.MouseEvent) => {
+  const handleDeleteConversation = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!confirm("Are you sure you want to delete this conversation?")) return;
     try {
       const token = await getToken();
-      await deleteConversation(token, orgId, cId);
-      if (conversationId === cId) {
+      await deleteConversation(token, orgId, id);
+      if (conversationId === id) {
         setConversationId(null);
       }
-      void queryClient.invalidateQueries({ queryKey: ["conversations", orgId] });
-    } catch {
-      alert("Failed to delete conversation.");
+      await queryClient.invalidateQueries({ queryKey: ["conversations", orgId] });
+    } catch (err) {
+      setErrorMessage((err as ApiError).message ?? "Failed to delete conversation");
     }
   };
 
-  const messages: ChatMessageItem[] = (conversation.data?.messages ?? []).map((m) => ({
-    ...m,
-    traces: localTracesMap[m.id] ?? m.traces,
-  }));
+  const messages: ChatMessageItem[] = (conversation.data?.messages ?? []).map((m) => {
+    if (m.role === "assistant" && (!m.traces || m.traces.length === 0) && localTracesMap[m.id]) {
+      return { ...m, traces: localTracesMap[m.id] };
+    }
+    return m;
+  });
 
   return (
-    <main className="mx-auto flex h-screen max-w-6xl gap-4 px-4 py-6">
-      {/* Sidebar */}
-      <aside className="hidden w-72 shrink-0 flex-col gap-3 sm:flex">
-        <Link
-          href={`/orgs/${orgId}`}
-          className="flex items-center gap-1.5 text-sm font-medium text-[color:var(--color-muted)] hover:text-white"
-        >
-          <span>←</span> Knowledge base
-        </Link>
-        <button
-          onClick={() => {
-            setConversationId(null);
-            setErrorMessage(null);
-          }}
-          className="flex items-center justify-center gap-2 rounded-lg bg-[color:var(--color-accent)] px-3 py-2.5 text-sm font-medium text-white shadow-sm hover:opacity-90"
-        >
-          <span>+</span> New chat
-        </button>
+    <div className="h-screen ambient-canvas flex flex-col p-4 sm:p-6">
+      <main className="mx-auto flex w-full max-w-7xl flex-1 gap-5 overflow-hidden">
+        {/* Left Rail: Conversations */}
+        <aside className="hidden md:flex w-64 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
+          <Link
+            href={`/orgs/${orgId}`}
+            className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
+          >
+            <span>←</span> Knowledge Base
+          </Link>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-[color:var(--color-muted)]">
-            Past Conversations
+          <button
+            onClick={() => {
+              setConversationId(null);
+              setErrorMessage(null);
+            }}
+            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+          >
+            <span>+</span> New Chat
+          </button>
+
+          <div className="mt-5 min-h-0 flex-1 overflow-y-auto">
+            <div className="mb-2.5 px-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Past Conversations
+            </div>
+            <ul className="space-y-1">
+              {(conversations.data ?? []).map((c) => (
+                <li
+                  key={c.id}
+                  className={`group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-xs transition-colors ${
+                    c.id === conversationId
+                      ? "bg-indigo-50 font-semibold text-indigo-900 border border-indigo-200/80"
+                      : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                  }`}
+                >
+                  <button
+                    onClick={() => {
+                      setConversationId(c.id);
+                      setErrorMessage(null);
+                    }}
+                    className="flex-1 truncate py-1 text-left"
+                    title={c.title}
+                  >
+                    {c.title}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteConversation(c.id, e)}
+                    title="Delete conversation"
+                    className="ml-1 opacity-0 group-hover:opacity-100 rounded p-1 text-slate-400 hover:text-rose-600 transition-all text-xs"
+                  >
+                    ✕
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-1">
-            {(conversations.data ?? []).map((c) => (
-              <li
-                key={c.id}
-                className={`group flex items-center justify-between rounded-lg px-2.5 py-1 text-sm transition-colors hover:bg-white/5 ${
-                  c.id === conversationId ? "bg-white/10 font-medium text-white" : "text-gray-300"
+        </aside>
+
+        {/* Main Chat Pane */}
+        <section className="flex min-w-0 flex-1 flex-col rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm">
+          {/* Header */}
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-base font-bold text-indigo-600">
+                💬
+              </div>
+              <div>
+                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                  Knowledge Assistant
+                </h2>
+                <p className="text-[11px] text-slate-400">
+                  Grounded in your enterprise indexed documents
+                </p>
+              </div>
+            </div>
+
+            {/* Mode Switcher */}
+            <div className="flex items-center gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1 text-xs font-semibold">
+              <button
+                type="button"
+                onClick={() => setChatMode("agentic")}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 transition-all ${
+                  chatMode === "agentic"
+                    ? "bg-white text-indigo-700 shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <button
-                  onClick={() => {
-                    setConversationId(c.id);
-                    setErrorMessage(null);
-                  }}
-                  className="flex-1 truncate py-1 text-left"
-                  title={c.title}
-                >
-                  {c.title}
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => handleDeleteConversation(c.id, e)}
-                  title="Delete conversation"
-                  className="ml-1.5 opacity-0 group-hover:opacity-100 rounded p-1 text-xs text-gray-400 hover:bg-red-500/20 hover:text-red-400 transition-all"
-                >
-                  ✕
-                </button>
-              </li>
+                <span>🧠</span> Agentic AI (LangGraph)
+              </button>
+              <button
+                type="button"
+                onClick={() => setChatMode("linear")}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1 transition-all ${
+                  chatMode === "linear"
+                    ? "bg-white text-indigo-700 shadow-2xs"
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <span>⚡</span> Fast Linear RAG
+              </button>
+            </div>
+          </div>
+
+          {/* Message Thread */}
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 py-2">
+            {messages.length === 0 && !isStreaming && (
+              <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400">
+                <span className="text-4xl">✨</span>
+                <p className="text-sm font-semibold text-slate-800">
+                  Ask anything about your documents
+                </p>
+                <p className="max-w-md text-xs text-slate-500">
+                  Answers are synthesized strictly from your uploaded files and web sources with verified citations.
+                </p>
+              </div>
+            )}
+
+            {messages.map((m) => (
+              <MessageBubble key={m.id} message={m} />
             ))}
-          </ul>
-        </div>
-      </aside>
 
-      {/* Main chat section */}
-      <section className="flex min-w-0 flex-1 flex-col rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-md">
-        {/* Header with Mode Toggle */}
-        <div className="mb-3 flex items-center justify-between border-b border-white/10 pb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-lg">💬</span>
-            <div>
-              <h2 className="text-sm font-semibold">Knowledge Assistant</h2>
-              <p className="text-[11px] text-[color:var(--color-muted)]">
-                Org-scoped retrieval &amp; grounded citations
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 rounded-lg border border-white/10 bg-black/40 p-1 text-xs">
-            <button
-              type="button"
-              onClick={() => setChatMode("agentic")}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-colors ${
-                chatMode === "agentic"
-                  ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                  : "text-[color:var(--color-muted)] hover:text-white"
-              }`}
-            >
-              <span>🧠</span> Agentic AI (LangGraph)
-            </button>
-            <button
-              type="button"
-              onClick={() => setChatMode("linear")}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 font-medium transition-colors ${
-                chatMode === "linear"
-                  ? "bg-[color:var(--color-accent)]/20 text-[color:var(--color-accent)] border border-[color:var(--color-accent)]/30"
-                  : "text-[color:var(--color-muted)] hover:text-white"
-              }`}
-            >
-              <span>⚡</span> Fast Linear RAG
-            </button>
-          </div>
-        </div>
-
-        {/* Message Thread */}
-        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 py-2">
-          {messages.length === 0 && !isStreaming && (
-            <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-sm text-[color:var(--color-muted)]">
-              <span className="text-3xl">✨</span>
-              <p className="font-medium text-white">Ask anything about your documents</p>
-              <p className="max-w-md text-xs">
-                Answers are synthesized strictly from your uploaded files and web pages with
-                verifiable citations.
-              </p>
-            </div>
-          )}
-
-          {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
-          ))}
-
-          {/* Real-time Agent Reasoning Step Progression */}
-          {isStreaming && (
-            <div className="rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-3.5 text-xs text-cyan-200">
-              <div className="mb-2 flex items-center justify-between">
-                <div className="flex items-center gap-2 font-medium">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-400 opacity-75"></span>
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-cyan-500"></span>
-                  </span>
-                  <span>Agent Executing ({chatMode === "agentic" ? "LangGraph Multi-Agent" : "Linear RAG"})</span>
-                </div>
-                <span className="text-[11px] text-cyan-400 font-mono">In Progress</span>
-              </div>
-
-              <div className="space-y-1.5">
-                {streamSteps.map((step, idx) => (
-                  <div key={idx} className="flex items-start gap-2 rounded bg-black/40 p-1.5 font-mono text-[11px]">
-                    <span className="rounded bg-cyan-500/20 px-1 py-0.5 text-[10px] uppercase text-cyan-300">
-                      {step.step}
+            {/* In-flight streaming status */}
+            {isStreaming && (
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4 text-xs text-indigo-900 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold">
+                    <span className="relative flex h-2 w-2">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-indigo-400 opacity-75"></span>
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-indigo-600"></span>
                     </span>
-                    <span className="text-gray-300">{step.status || "Processing..."}</span>
+                    <span>Agent Executing ({chatMode === "agentic" ? "LangGraph Multi-Agent" : "Linear RAG"})</span>
                   </div>
-                ))}
-                {streamSteps.length === 0 && (
-                  <p className="text-[11px] text-[color:var(--color-muted)]">Connecting to reasoning stream…</p>
-                )}
+                  <span className="text-[10px] font-mono text-indigo-600">Active</span>
+                </div>
+
+                <div className="space-y-1">
+                  {streamSteps.map((step, idx) => (
+                    <div key={idx} className="flex items-start gap-2 rounded-lg bg-white/80 p-1.5 font-mono text-[11px] border border-indigo-100">
+                      <span className="rounded bg-indigo-100 px-1 py-0.5 text-[10px] font-bold uppercase text-indigo-800">
+                        {step.step}
+                      </span>
+                      <span className="text-slate-700">{step.status || "Processing..."}</span>
+                    </div>
+                  ))}
+                  {streamSteps.length === 0 && (
+                    <p className="text-[11px] text-slate-500">Connecting to reasoning stream…</p>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {errorMessage && (
-            <div className="rounded-lg border border-red-500/30 bg-red-950/20 p-3 text-xs text-red-400">
-              {errorMessage}
-            </div>
-          )}
-          <div ref={threadEndRef} />
-        </div>
+            {errorMessage && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-600">
+                {errorMessage}
+              </div>
+            )}
+            <div ref={threadEndRef} />
+          </div>
 
-        {/* Input Form */}
-        <form onSubmit={onSend} className="mt-3 flex gap-2">
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              chatMode === "agentic"
-                ? "Ask a question (agent will plan, retrieve, and fact-check verify)…"
-                : "Ask a question (fast linear search & answer)…"
-            }
-            className="flex-1 rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm focus:border-cyan-500/50 focus:outline-none"
-          />
-          <button
-            type="submit"
-            disabled={isStreaming || !input.trim()}
-            className="flex items-center gap-1.5 rounded-xl bg-[color:var(--color-accent)] px-5 py-3 text-sm font-medium text-white shadow-sm hover:opacity-90 disabled:opacity-50"
-          >
-            <span>Send</span>
-            <span>↵</span>
-          </button>
-        </form>
-      </section>
-    </main>
+          {/* Prompt Form */}
+          <form onSubmit={onSend} className="mt-3 flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={
+                chatMode === "agentic"
+                  ? "Ask a question (agent will plan, retrieve, and fact-check verify)…"
+                  : "Ask a question (fast linear search & answer)…"
+              }
+              className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
+            />
+            <button
+              type="submit"
+              disabled={isStreaming || !input.trim()}
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-3 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+            >
+              <span>Send</span>
+              <span>↵</span>
+            </button>
+          </form>
+        </section>
+      </main>
+    </div>
   );
 }
-

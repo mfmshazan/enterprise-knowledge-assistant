@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth/context";
 import {
-  ApiKeyCreatedResponse,
   ApiKeyItem,
+  ApiKeyCreatedResponse,
   createApiKey,
   listApiKeys,
   revokeApiKey,
@@ -20,13 +20,13 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Create Key Modal
+  // Creation modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [keyName, setKeyName] = useState("");
-  const [expiresInDays, setExpiresInDays] = useState<number | undefined>(30);
+  const [expiresInDays, setExpiresInDays] = useState<number | undefined>(undefined);
   const [creating, setCreating] = useState(false);
 
-  // One-time Secret Key Revealed Modal
+  // Key revelation modal
   const [newKeyData, setNewKeyData] = useState<ApiKeyCreatedResponse | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -60,6 +60,7 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
       });
       setShowCreateModal(false);
       setKeyName("");
+      setExpiresInDays(undefined);
       setNewKeyData(res);
       fetchKeys();
     } catch (err: unknown) {
@@ -70,7 +71,7 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
   };
 
   const handleRevoke = async (keyId: string, name: string) => {
-    if (!confirm(`Are you sure you want to revoke the API key "${name}"? Any applications using this key will immediately lose access.`)) {
+    if (!confirm(`Are you sure you want to revoke API key "${name}"? This action cannot be undone.`)) {
       return;
     }
     try {
@@ -93,72 +94,74 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
       {/* Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
             <span>🔑</span> Developer API Keys
           </h2>
-          <p className="text-sm text-zinc-400 mt-1">
+          <p className="text-xs text-slate-500 mt-0.5">
             Machine-to-machine authentication keys for integrating external pipelines, CLI tools, and automation bots.
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors shadow-sm"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-all shadow-sm active:scale-95"
         >
           <span>➕</span> Generate New API Key
         </button>
       </div>
 
       {error && (
-        <div className="p-3 bg-rose-500/10 border border-rose-500/30 text-rose-300 rounded-lg text-sm">
+        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold">
           ⚠ {error}
         </div>
       )}
 
       {/* Keys Table */}
-      <div className="border border-zinc-800 rounded-xl overflow-hidden bg-zinc-900/60 shadow-lg backdrop-blur-sm">
+      <div className="border border-slate-200/80 rounded-2xl overflow-hidden bg-white shadow-xs">
         {loading ? (
-          <div className="p-12 text-center text-zinc-400">Loading API keys...</div>
+          <div className="p-12 text-center text-xs text-slate-400">Loading API keys...</div>
         ) : keys.length === 0 ? (
-          <div className="p-12 text-center text-zinc-400">
+          <div className="p-12 text-center text-xs text-slate-400">
             No API keys created yet. Click Generate New API Key to create your first machine key.
           </div>
         ) : (
-          <table className="w-full text-left text-sm text-zinc-300">
-            <thead className="bg-zinc-950/80 text-xs uppercase font-semibold text-zinc-400 border-b border-zinc-800">
+          <table className="w-full text-left text-sm text-slate-700">
+            <thead className="bg-slate-50/80 text-[11px] uppercase font-bold tracking-wider text-slate-500 border-b border-slate-100">
               <tr>
-                <th className="px-6 py-4">Key Name</th>
-                <th className="px-6 py-4">Key Prefix</th>
-                <th className="px-6 py-4">Created</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
+                <th className="px-6 py-3.5">Key Name</th>
+                <th className="px-6 py-3.5">Key Prefix</th>
+                <th className="px-6 py-3.5">Created</th>
+                <th className="px-6 py-3.5">Status</th>
+                <th className="px-6 py-3.5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60">
+            <tbody className="divide-y divide-slate-100 text-xs">
               {keys.map((k) => (
-                <tr key={k.id} className="hover:bg-zinc-800/40 transition-colors">
+                <tr key={k.id} className="hover:bg-slate-50/70 transition-colors">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-white">{k.name}</div>
+                    <div className="font-semibold text-slate-900">{k.name}</div>
                     {k.expires_at && (
-                      <div className="text-xs text-zinc-400">
+                      <div className="text-[11px] text-slate-400 mt-0.5">
                         Expires: {new Date(k.expires_at).toLocaleDateString()}
                       </div>
                     )}
                   </td>
-                  <td className="px-6 py-4 font-mono text-xs text-zinc-300">
-                    <span className="px-2 py-1 bg-zinc-950 rounded border border-zinc-800">
+                  <td className="px-6 py-4 font-mono text-xs">
+                    <span className="px-2 py-0.5 bg-slate-100 rounded-md border border-slate-200 text-slate-700 font-semibold">
                       {k.key_prefix}
                     </span>
                   </td>
-                  <td className="px-6 py-4 text-xs text-zinc-400">
+                  <td className="px-6 py-4 text-slate-500">
                     {new Date(k.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4">
                     {k.is_active ? (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        ● Active
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Active
                       </span>
                     ) : (
-                      <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
+                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
                         Revoked
                       </span>
                     )}
@@ -167,7 +170,7 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
                     {k.is_active && (
                       <button
                         onClick={() => handleRevoke(k.id, k.name)}
-                        className="px-2.5 py-1.5 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-lg transition-colors font-medium"
+                        className="px-2.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                       >
                         Revoke
                       </button>
@@ -182,22 +185,22 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
 
       {/* Generate API Key Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <span>🔑</span> Generate API Key
               </h3>
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="text-zinc-400 hover:text-zinc-200 text-sm"
+                className="text-slate-400 hover:text-slate-700 text-sm font-semibold p-1 rounded-lg hover:bg-slate-100 transition-colors"
               >
                 ✕
               </button>
             </div>
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Key Name
                 </label>
                 <input
@@ -206,41 +209,46 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
                   value={keyName}
                   onChange={(e) => setKeyName(e.target.value)}
                   placeholder="e.g. CI/CD Ingestion Worker"
-                  className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-700 rounded-xl text-white placeholder-zinc-500 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-1.5">
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   Expiration
                 </label>
-                <select
-                  value={expiresInDays ?? 0}
-                  onChange={(e) => {
-                    const val = Number(e.target.value);
-                    setExpiresInDays(val === 0 ? undefined : val);
-                  }}
-                  className="w-full px-3.5 py-2.5 bg-zinc-950 border border-zinc-700 rounded-xl text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value={30}>30 days</option>
-                  <option value={90}>90 days</option>
-                  <option value={365}>1 year</option>
-                  <option value={0}>Never expires</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={expiresInDays ?? 0}
+                    onChange={(e) => {
+                      const val = Number(e.target.value);
+                      setExpiresInDays(val === 0 ? undefined : val);
+                    }}
+                    className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs sm:text-sm font-medium focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all cursor-pointer pr-9"
+                  >
+                    <option value={30}>30 days</option>
+                    <option value={90}>90 days</option>
+                    <option value={365}>1 year</option>
+                    <option value={0}>Never expires</option>
+                  </select>
+                  <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                    ▼
+                  </span>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl text-zinc-400 hover:text-zinc-200 text-sm"
+                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating}
-                  className="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm transition-colors disabled:opacity-50"
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 shadow-sm"
                 >
                   {creating ? "Generating..." : "Generate Key"}
                 </button>
@@ -252,41 +260,44 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
 
       {/* Secret Key Revealed Modal */}
       {newKeyData && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-zinc-900 border border-amber-500/40 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-amber-400">
-              <span className="text-2xl">⚠️</span>
-              <h3 className="text-lg font-bold text-white">Save Your API Secret Key</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-white border border-amber-300 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 text-xl">
+                ⚠️
+              </span>
+              <div>
+                <h3 className="text-base font-bold text-slate-900">Save Your API Secret Key</h3>
+                <p className="text-xs text-amber-700 font-medium">
+                  Copy this key now. You will never be able to view it again.
+                </p>
+              </div>
             </div>
-
-            <p className="text-xs text-zinc-300 leading-relaxed">
-              Please copy your API key now. <strong className="text-amber-300">For security reasons, you will never be able to view this key again.</strong>
-            </p>
 
             <div className="relative">
               <input
                 type="text"
                 readOnly
                 value={newKeyData.secret_key}
-                className="w-full px-4 py-3 bg-zinc-950 border border-zinc-700 rounded-xl font-mono text-sm text-emerald-400 focus:outline-none pr-24"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-900 focus:outline-none pr-24 font-bold select-all"
               />
               <button
                 onClick={() => copyToClipboard(newKeyData.secret_key)}
-                className="absolute right-2 top-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition-colors"
+                className="absolute right-2 top-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-2xs"
               >
                 {copied ? "Copied! ✓" : "Copy"}
               </button>
             </div>
 
-            <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800 text-[11px] text-zinc-400 space-y-1">
-              <div><strong>Key Name:</strong> {newKeyData.name}</div>
-              <div><strong>Prefix:</strong> {newKeyData.key_prefix}</div>
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
+              <div><strong className="text-slate-800">Key Name:</strong> {newKeyData.name}</div>
+              <div><strong className="text-slate-800">Prefix:</strong> <span className="font-mono">{newKeyData.key_prefix}</span></div>
             </div>
 
             <div className="flex justify-end pt-2">
               <button
                 onClick={() => setNewKeyData(null)}
-                className="px-5 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-xl text-sm font-medium"
+                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-colors"
               >
                 Done
               </button>

@@ -62,14 +62,14 @@ export default function OrgWorkspacePage() {
           </div>
         </div>
 
-        {/* Greeting & AI Assistant Prompt Bar */}
+        {/* 1. Greeting & Ask AI Bar at the Top (no emoji) */}
         <AiAssistantBanner userName={userLabel} orgId={orgId} />
 
-        {/* Workspace Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-slate-200/80 pb-2 overflow-x-auto scrollbar-none pt-2">
+        {/* 2. The 4 Workspace Navigation Tabs Just Below the Ask AI Bar */}
+        <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto scrollbar-none pt-1">
           <button
             onClick={() => setActiveTab("documents")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
               activeTab === "documents"
                 ? "bg-slate-900 text-white shadow-sm"
                 : "text-slate-600 hover:bg-white hover:text-slate-900"
@@ -79,7 +79,7 @@ export default function OrgWorkspacePage() {
           </button>
           <button
             onClick={() => setActiveTab("team")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
               activeTab === "team"
                 ? "bg-slate-900 text-white shadow-sm"
                 : "text-slate-600 hover:bg-white hover:text-slate-900"
@@ -89,7 +89,7 @@ export default function OrgWorkspacePage() {
           </button>
           <button
             onClick={() => setActiveTab("audit")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
               activeTab === "audit"
                 ? "bg-slate-900 text-white shadow-sm"
                 : "text-slate-600 hover:bg-white hover:text-slate-900"
@@ -99,7 +99,7 @@ export default function OrgWorkspacePage() {
           </button>
           <button
             onClick={() => setActiveTab("api_keys")}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
               activeTab === "api_keys"
                 ? "bg-slate-900 text-white shadow-sm"
                 : "text-slate-600 hover:bg-white hover:text-slate-900"
@@ -109,20 +109,24 @@ export default function OrgWorkspacePage() {
           </button>
         </div>
 
-        {/* Tab Contents */}
+        {/* 3. Tab Contents */}
         <div className="pt-2">
           {activeTab === "documents" && (
-            <div className="grid gap-6 lg:grid-cols-12">
-              {/* Left Main Column: Documents Grid & Upload Panel */}
-              <div className="space-y-6 lg:col-span-8">
+            <div className="grid gap-6 lg:grid-cols-12 items-stretch">
+              {/* Left Column: Documents Grid + Add Knowledge directly below */}
+              <div className="lg:col-span-8 flex flex-col justify-between space-y-6">
                 <DocumentList orgId={orgId} />
-                <UploadPanel orgId={orgId} />
+                <div className="flex-1 flex flex-col">
+                  <UploadPanel orgId={orgId} />
+                </div>
               </div>
 
-              {/* Right Column: Analytics Widget & Knowledge Tasks */}
-              <div className="space-y-6 lg:col-span-4">
+              {/* Right Column: Analytics Widget + Knowledge Tasks */}
+              <div className="lg:col-span-4 flex flex-col justify-between space-y-6">
                 <AnalyticsWidget documents={docs} />
-                <TasksWidget documents={docs} orgId={orgId} />
+                <div className="flex-1 flex flex-col">
+                  <TasksWidget documents={docs} orgId={orgId} />
+                </div>
               </div>
             </div>
           )}

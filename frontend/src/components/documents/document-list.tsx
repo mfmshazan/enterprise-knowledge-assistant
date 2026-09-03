@@ -32,6 +32,7 @@ function formatRelativeTime(dateString: string): string {
 export function DocumentList({ orgId }: { orgId: string }) {
   const documents = useDocuments(orgId);
   const remove = useDeleteDocument(orgId);
+
   const [activeFilter, setActiveFilter] = useState<"recent" | "starred" | "private">("recent");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [starredIds, setStarredIds] = useState<Record<string, boolean>>({});
@@ -142,7 +143,7 @@ export function DocumentList({ orgId }: { orgId: string }) {
           <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
             {activeFilter === "starred"
               ? "Star documents to quickly access them in this view."
-              : "Upload a PDF, DOCX, TXT file or add a web URL below to build your organization's knowledge base."}
+              : "Upload a PDF, DOCX, TXT file or add a web URL in the Add Knowledge panel below."}
           </p>
         </div>
       ) : viewMode === "grid" ? (
@@ -151,7 +152,7 @@ export function DocumentList({ orgId }: { orgId: string }) {
           {docs.map((doc: DocumentItem) => (
             <div
               key={doc.id}
-              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md"
+              className="group relative flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition-all hover:border-slate-300 hover:shadow-md min-h-[160px]"
             >
               <div>
                 {/* Card Top: Preview icon & Star button */}
@@ -231,7 +232,7 @@ export function DocumentList({ orgId }: { orgId: string }) {
                     {doc.source_type === "url" ? "🌐" : "📄"}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-800">
+                    <p className="truncate text-sm font-semibold text-slate-800">
                       {doc.title}
                     </p>
                     <p className="text-xs text-slate-400 truncate">
@@ -250,7 +251,7 @@ export function DocumentList({ orgId }: { orgId: string }) {
                   <button
                     onClick={() => remove.mutate(doc.id)}
                     disabled={remove.isPending}
-                    className="text-xs text-slate-400 hover:text-rose-600 disabled:opacity-50"
+                    className="text-xs font-semibold text-slate-400 hover:text-rose-600 disabled:opacity-50"
                   >
                     Delete
                   </button>
