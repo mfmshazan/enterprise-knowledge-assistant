@@ -17,7 +17,6 @@ so repeated calls converge on the same rows.
 from __future__ import annotations
 
 from app.auth.base import AuthIdentity
-from app.core.exceptions import AuthenticationError
 from app.core.logging import get_logger
 from app.core.slug import slugify
 from app.models.enums import Role

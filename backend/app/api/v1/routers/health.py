@@ -46,6 +46,7 @@ async def ready() -> ReadinessResponse:
     # --- Postgres ---
     try:
         from sqlalchemy import text
+
         from app.db.session import get_engine
         async with get_engine().connect() as conn:
             await conn.execute(text("SELECT 1"))
@@ -80,6 +81,7 @@ async def ready() -> ReadinessResponse:
     # --- Object storage (S3 / MinIO) ---
     try:
         from anyio import to_thread
+
         from app.storage.factory import get_object_storage
         from app.storage.s3 import S3ObjectStorage
         storage = get_object_storage()

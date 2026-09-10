@@ -105,7 +105,9 @@ class QdrantVectorStore(VectorStore):
                 limit=limit,
                 query_filter=models.Filter(
                     must=[
-                        models.FieldCondition(key="org_id", match=models.MatchValue(value=str(org_id)))
+                        models.FieldCondition(
+                            key="org_id", match=models.MatchValue(value=str(org_id))
+                        )
                     ]
                 ),
             )
