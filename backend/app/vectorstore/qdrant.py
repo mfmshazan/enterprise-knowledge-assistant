@@ -112,7 +112,11 @@ class QdrantVectorStore(VectorStore):
                 ),
             )
             return [
-                SearchHit(id=uuid.UUID(str(point.id)), score=point.score, payload=point.payload or {})
+                SearchHit(
+                    id=uuid.UUID(str(point.id)),
+                    score=point.score,
+                    payload=point.payload or {},
+                )
                 for point in result.points
             ]
         except Exception as e:
