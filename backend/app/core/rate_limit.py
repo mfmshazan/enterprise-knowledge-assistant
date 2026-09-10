@@ -21,9 +21,7 @@ class InMemoryRateLimiter:
     def __init__(self) -> None:
         self._store: dict[str, list[float]] = defaultdict(list)
 
-    async def is_allowed(
-        self, key: str, limit: int, window_seconds: int
-    ) -> tuple[bool, int, int]:
+    async def is_allowed(self, key: str, limit: int, window_seconds: int) -> tuple[bool, int, int]:
         now = time.time()
         window_start = now - window_seconds
         timestamps = [t for t in self._store[key] if t > window_start]
@@ -47,9 +45,7 @@ class RedisRateLimiter:
     def __init__(self, redis: Redis) -> None:
         self._redis = redis
 
-    async def is_allowed(
-        self, key: str, limit: int, window_seconds: int
-    ) -> tuple[bool, int, int]:
+    async def is_allowed(self, key: str, limit: int, window_seconds: int) -> tuple[bool, int, int]:
         now = time.time()
         window_start = now - window_seconds
         pipe = self._redis.pipeline()
@@ -98,8 +94,6 @@ def rate_limiter(
         response.headers["X-RateLimit-Reset"] = str(reset)
 
         if not allowed:
-            raise RateLimitExceededError(
-                f"Rate limit exceeded. Try again in {reset} seconds."
-            )
+            raise RateLimitExceededError(f"Rate limit exceeded. Try again in {reset} seconds.")
 
     return _guard

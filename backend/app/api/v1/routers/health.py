@@ -48,6 +48,7 @@ async def ready() -> ReadinessResponse:
         from sqlalchemy import text
 
         from app.db.session import get_engine
+
         async with get_engine().connect() as conn:
             await conn.execute(text("SELECT 1"))
         checks["database"] = "ok"
@@ -58,6 +59,7 @@ async def ready() -> ReadinessResponse:
     # --- Redis ---
     try:
         import redis.asyncio as aioredis
+
         r = aioredis.from_url(settings.REDIS_URL, socket_connect_timeout=2)
         await r.ping()
         await r.aclose()
@@ -70,6 +72,7 @@ async def ready() -> ReadinessResponse:
     try:
         from app.vectorstore.factory import get_vector_store
         from app.vectorstore.qdrant import QdrantVectorStore
+
         store = get_vector_store()
         if isinstance(store, QdrantVectorStore):
             await store._client.collection_exists(settings.QDRANT_COLLECTION)
@@ -84,10 +87,13 @@ async def ready() -> ReadinessResponse:
 
         from app.storage.factory import get_object_storage
         from app.storage.s3 import S3ObjectStorage
+
         storage = get_object_storage()
         if isinstance(storage, S3ObjectStorage):
+
             def _head() -> None:
                 storage._client.head_bucket(Bucket=storage._bucket)
+
             await to_thread.run_sync(_head)
         checks["storage"] = "ok"
     except Exception as exc:

@@ -13,9 +13,7 @@ from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class ApiKey(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "api_keys"
-    __table_args__ = (
-        Index("ix_api_keys_org_created_at", "org_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_api_keys_org_created_at", "org_id", "created_at"),)
 
     org_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False

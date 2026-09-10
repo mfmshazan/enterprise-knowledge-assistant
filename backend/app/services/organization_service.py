@@ -125,6 +125,7 @@ class OrganizationService:
             raise PermissionDeniedError("Only an owner can grant the owner role.")
 
         from app.repositories.user import UserRepository
+
         user_repo = UserRepository(self.memberships.session)
         clean_email = email.strip().lower()
         user = await user_repo.get_by_email(clean_email)
@@ -145,4 +146,3 @@ class OrganizationService:
         self.memberships.add(membership)
         await self.memberships.session.flush()
         return await self.memberships.get_by_user_and_org_with_user(user.id, org_id) or membership
-

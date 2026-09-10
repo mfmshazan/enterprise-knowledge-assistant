@@ -17,9 +17,7 @@ from app.db.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
 class AuditLog(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     __tablename__ = "audit_logs"
-    __table_args__ = (
-        Index("ix_audit_logs_org_created_at", "org_id", "created_at"),
-    )
+    __table_args__ = (Index("ix_audit_logs_org_created_at", "org_id", "created_at"),)
 
     org_id: Mapped[uuid.UUID] = mapped_column(
         ForeignKey("organizations.id", ondelete="CASCADE"), index=True, nullable=False

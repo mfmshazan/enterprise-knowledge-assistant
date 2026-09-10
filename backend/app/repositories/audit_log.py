@@ -46,9 +46,7 @@ class AuditLogRepository(OrgScopedRepository[AuditLog]):
     ) -> tuple[list[AuditLog], int]:
         stmt = self._scoped()
         count_stmt = (
-            select(func.count())
-            .select_from(AuditLog)
-            .where(AuditLog.org_id == self.org_id)
+            select(func.count()).select_from(AuditLog).where(AuditLog.org_id == self.org_id)
         )
 
         if action:

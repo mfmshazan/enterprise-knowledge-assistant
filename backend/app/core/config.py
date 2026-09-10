@@ -43,9 +43,7 @@ class Settings(BaseSettings):
 
     # ---------- Backend / API ----------
     SECRET_KEY: str = Field(default="change-me", min_length=8)
-    BACKEND_CORS_ORIGINS: list[str] | str = Field(
-        default_factory=lambda: ["http://localhost:3000"]
-    )
+    BACKEND_CORS_ORIGINS: list[str] | str = Field(default_factory=lambda: ["http://localhost:3000"])
 
     # ---------- Datastores ----------
     DATABASE_URL: str = "postgresql+asyncpg://eka:eka_password@localhost:5432/eka"

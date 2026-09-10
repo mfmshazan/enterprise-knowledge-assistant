@@ -106,9 +106,7 @@ def upgrade() -> None:
         batch_op.create_index(batch_op.f("ix_api_keys_key_hash"), ["key_hash"], unique=True)
         batch_op.create_index(batch_op.f("ix_api_keys_key_prefix"), ["key_prefix"], unique=False)
         batch_op.create_index(batch_op.f("ix_api_keys_org_id"), ["org_id"], unique=False)
-        batch_op.create_index(
-            "ix_api_keys_org_created_at", ["org_id", "created_at"], unique=False
-        )
+        batch_op.create_index("ix_api_keys_org_created_at", ["org_id", "created_at"], unique=False)
 
 
 def downgrade() -> None:
