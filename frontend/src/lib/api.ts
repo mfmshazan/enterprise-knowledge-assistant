@@ -61,6 +61,21 @@ export interface HealthResponse {
   environment: string;
 }
 
+export interface SystemConfig {
+  llm_provider: string;
+  llm_model: string;
+  embedding_provider: string;
+  embedding_model: string;
+  embedding_dim: number;
+  vector_store: string;
+  chat_mode: string;
+}
+
+/** Fetch the active (non-secret) system configuration for display in the UI. */
+export function getSystemConfig(): Promise<SystemConfig> {
+  return apiFetch<SystemConfig>("/api/v1/meta/config");
+}
+
 export type Role = "owner" | "admin" | "member";
 
 export interface Organization {

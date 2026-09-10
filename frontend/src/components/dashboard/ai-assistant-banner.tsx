@@ -19,7 +19,11 @@ export function AiAssistantBanner({ userName, orgId }: AiAssistantBannerProps) {
     return "Good evening";
   };
 
-  const displayName = userName ? userName.split("@")[0].split(" ")[0] : "there";
+  // Take the local part before "@", then the first token before any separator
+  // (space, dot, underscore, hyphen) and strip trailing digits — so
+  // "shazan.study0@gmail.com" -> "Shazan", "john_doe" -> "John".
+  const rawName = userName ? userName.split("@")[0].split(/[\s._-]/)[0] : "there";
+  const displayName = rawName.replace(/\d+$/, "") || rawName;
   // Capitalize first letter
   const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
 

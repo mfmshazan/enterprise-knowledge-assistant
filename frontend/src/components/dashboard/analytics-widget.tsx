@@ -1,12 +1,31 @@
 "use client";
 
-import type { DocumentItem } from "@/lib/api";
+import { useEffect, useState } from "react";
+
+import { getSystemConfig, type DocumentItem, type SystemConfig } from "@/lib/api";
 
 interface AnalyticsWidgetProps {
   documents: DocumentItem[];
 }
 
+/** Human-friendly label for a model id, e.g. "gemini-3.6-flash" -> "Gemini 3.6 Flash". */
+function prettyModel(model: string): string {
+  return model
+    .split(/[-_]/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function AnalyticsWidget({ documents }: AnalyticsWidgetProps) {
+  const [config, setConfig] = useState<SystemConfig | null>(null);
+
+  useEffect(() => {
+    // Non-secret system config; failures degrade gracefully to a placeholder.
+    getSystemConfig()
+      .then(setConfig)
+      .catch(() => setConfig(null));
+  }, []);
+
   const totalDocs = documents.length;
   const indexedCount = documents.filter((d) => d.status === "indexed").length;
   const pendingCount = documents.filter(
@@ -95,11 +114,15 @@ export function AnalyticsWidget({ documents }: AnalyticsWidgetProps) {
         </div>
         <div className="flex items-center justify-between">
           <span className="text-slate-500">Vector Embeddings</span>
-          <span className="font-semibold text-emerald-600">3072 dims (Qdrant)</span>
+          <span className="font-semibold text-emerald-600">
+            {config ? `${config.embedding_dim} dims (${config.vector_store})` : "—"}
+          </span>
         </div>
         <div className="flex items-center justify-between">
           <span className="text-slate-500">Verification Model</span>
-          <span className="font-semibold text-slate-800">Gemini 3.5 Lite</span>
+          <span className="font-semibold text-slate-800">
+            {config ? prettyModel(config.llm_model) : "—"}
+          </span>
         </div>
       </div>
     </div>

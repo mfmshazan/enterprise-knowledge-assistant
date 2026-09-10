@@ -50,7 +50,7 @@ export default function Home() {
             </div>
             <h3 className="text-sm font-bold text-slate-900">Ingestion Pipeline</h3>
             <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-              PDF, DOCX, TXT, and Web scraping with recursive chunking and 3072-dimensional vector indexing.
+              PDF, DOCX, TXT, and Web scraping with recursive chunking and 768-dimensional vector indexing.
             </p>
           </div>
 

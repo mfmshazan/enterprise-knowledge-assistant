@@ -14,6 +14,7 @@ from app.api.v1.routers import (
     audit,
     chat,
     documents,
+    meta,
     organizations,
     search,
     users,
@@ -25,6 +26,7 @@ api_router = APIRouter()
 # Health/readiness are mounted at the app root in main.py (infra probes expect
 # them there), so they are intentionally NOT included here.
 
+api_router.include_router(meta.router, prefix="/meta", tags=["meta"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(organizations.router, prefix="/orgs", tags=["organizations"])
 api_router.include_router(documents.router, prefix="/orgs/{org_id}/documents", tags=["documents"])
