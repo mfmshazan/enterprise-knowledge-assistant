@@ -13,6 +13,7 @@ Two distinct checks, following the Kubernetes liveness/readiness convention:
 from __future__ import annotations
 
 from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 
 from app import __version__
 from app.core.config import settings
@@ -38,9 +39,7 @@ async def health() -> HealthResponse:
     summary="Readiness probe",
     responses={503: {"description": "One or more dependencies are unhealthy"}},
 )
-async def ready() -> ReadinessResponse:
-    from fastapi.responses import JSONResponse
-
+async def ready() -> ReadinessResponse | JSONResponse:
     checks: dict[str, str] = {}
 
     # --- Postgres ---
