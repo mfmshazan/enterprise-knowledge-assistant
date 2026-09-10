@@ -90,15 +90,15 @@ class Settings(BaseSettings):
     # ---------- AI providers ----------
     # Providers speak the OpenAI API. "gemini" uses Google's OpenAI-compatible
     # endpoint, so the same client works with a different base URL + key.
-    LLM_PROVIDER: Literal["openai", "gemini"] = "openai"
-    EMBEDDING_PROVIDER: Literal["openai", "gemini"] = "openai"
+    LLM_PROVIDER: Literal["openai", "gemini"] = "gemini"
+    EMBEDDING_PROVIDER: Literal["openai", "gemini"] = "gemini"
     OPENAI_API_KEY: str | None = None
     GOOGLE_API_KEY: str | None = None  # Gemini API key
     # Optional override of the OpenAI-compatible base URL (advanced / local models).
     OPENAI_BASE_URL: str | None = None
-    LLM_MODEL: str = "gpt-4o"
-    EMBEDDING_MODEL: str = "text-embedding-3-small"
-    EMBEDDING_DIM: int = 1536
+    LLM_MODEL: str = "gemini-3.6-flash"
+    EMBEDDING_MODEL: str = "text-embedding-004"
+    EMBEDDING_DIM: int = 768
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="after")
     @classmethod

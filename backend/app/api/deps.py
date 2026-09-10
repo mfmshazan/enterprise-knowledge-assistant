@@ -11,11 +11,12 @@ override `get_db`/`get_auth_provider` to run without Postgres or Clerk.
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 from collections.abc import Awaitable, Callable
 from typing import Annotated
 
-from fastapi import Depends, Path
+from fastapi import Depends, Path, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,15 +64,42 @@ _bearer = HTTPBearer(auto_error=False, description="Bearer token from the auth p
 
 
 async def get_current_user(
+    request: Request,
     db: DbSession,
     provider: AuthProviderDep,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
 ) -> User:
-    """Authenticate the bearer token and return the (JIT-provisioned) local user."""
+    """Authenticate the bearer token and return the (JIT-provisioned) local user.
+
+    Supports two token types:
+    - Clerk JWT (or dev token): delegated to the configured AuthProvider.
+    - API key (prefix ``eka_live_``): verified by SHA-256 hash lookup; the key's
+      org is stashed on ``request.state.api_key_org_id`` so that
+      ``get_current_membership`` can enforce org-scoping without a second lookup.
+    """
     if credentials is None or not credentials.credentials:
         raise AuthenticationError("Missing or malformed Authorization header.")
 
-    identity = await provider.authenticate(credentials.credentials)
+    token = credentials.credentials
+
+    if token.startswith("eka_live_"):
+        from app.repositories.api_key import ApiKeyRepository
+
+        key_hash = hashlib.sha256(token.encode()).hexdigest()
+        api_key = await ApiKeyRepository.get_by_hash_global(db, key_hash)
+        if api_key is None or not api_key.is_active:
+            raise AuthenticationError("Invalid or expired API key.")
+
+        request.state.api_key_org_id = api_key.org_id
+
+        if api_key.created_by_user_id is None:
+            raise AuthenticationError("API key has no associated user.")
+        user = await UserRepository(db).get(api_key.created_by_user_id)
+        if user is None:
+            raise AuthenticationError("API key owner not found.")
+        return user
+
+    identity = await provider.authenticate(token)
     service = IdentityService(
         UserRepository(db),
         OrganizationRepository(db),
@@ -84,6 +112,7 @@ CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
 async def get_current_membership(
+    request: Request,
     db: DbSession,
     user: CurrentUser,
     org_id: Annotated[uuid.UUID, Path(description="Organization id")],
@@ -92,7 +121,15 @@ async def get_current_membership(
 
     Returns 404 (not 403) when the user isn't a member: we don't disclose the
     existence of organizations the caller has no access to.
+
+    For API key auth: additionally verifies the key was issued for this exact org,
+    so a key from org A cannot be used to access org B even if the creator is also
+    a member of org B.
     """
+    api_key_org_id = getattr(request.state, "api_key_org_id", None)
+    if api_key_org_id is not None and api_key_org_id != org_id:
+        raise NotFoundError("Organization not found.")
+
     membership = await MembershipRepository(db).get_by_user_and_org(user.id, org_id)
     if membership is None:
         raise NotFoundError("Organization not found.")

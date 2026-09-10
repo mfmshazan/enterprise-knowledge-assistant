@@ -5,7 +5,8 @@ from __future__ import annotations
 import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import desc
+from sqlalchemy import desc, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.api_key import ApiKey
 from app.repositories.base import OrgScopedRepository
@@ -33,6 +34,13 @@ class ApiKeyRepository(OrgScopedRepository[ApiKey]):
     async def get_by_hash(self, key_hash: str) -> ApiKey | None:
         stmt = self._scoped().where(ApiKey.key_hash == key_hash)
         return await self.session.scalar(stmt)
+
+    @staticmethod
+    async def get_by_hash_global(session: AsyncSession, key_hash: str) -> ApiKey | None:
+        """Lookup by hash without org scoping — used during API key authentication
+        when the org is not yet known."""
+        stmt = select(ApiKey).where(ApiKey.key_hash == key_hash)
+        return await session.scalar(stmt)
 
     async def revoke(self, key_id: uuid.UUID) -> ApiKey | None:
         key = await self.get(key_id)

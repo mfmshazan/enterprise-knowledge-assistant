@@ -1,0 +1,124 @@
+# Render Blueprint — deploys the FastAPI backend, PostgreSQL, and Redis.
+# Frontend is deployed separately on Vercel.
+#
+# First-time setup:
+#   1. Push this file to GitHub.
+#   2. In the Render dashboard → "Blueprints" → connect this repo.
+#   3. Fill in every env var marked sync: false (secrets, API keys, etc.).
+#   4. Render will create all services and wire DATABASE_URL / REDIS_URL automatically.
+#
+# Qdrant: use Qdrant Cloud (https://cloud.qdrant.io) — add QDRANT_URL and
+#   QDRANT_API_KEY as env vars below.
+
+services:
+  # ---------------------------------------------------------------------------
+  # FastAPI backend
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: eka-api
+    runtime: python
+    region: oregon
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install uv && uv sync --no-dev
+    startCommand: uv run alembic upgrade head && uv run uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+
+    envVars:
+      # ----- Runtime -----
+      - key: ENVIRONMENT
+        value: production
+      - key: LOG_JSON
+        value: "true"
+      - key: SECRET_KEY
+        generateValue: true
+
+      # ----- Postgres (injected by Render) -----
+      - key: DATABASE_URL
+        fromDatabase:
+          name: eka-db
+          property: connectionString
+
+      # ----- Redis (injected by Render) -----
+      - key: REDIS_URL
+        fromService:
+          name: eka-redis
+          type: redis
+          property: connectionString
+
+      # ----- Qdrant Cloud -----
+      - key: QDRANT_URL
+        sync: false   # set in Render dashboard
+      - key: QDRANT_API_KEY
+        sync: false   # set in Render dashboard
+      - key: QDRANT_COLLECTION
+        value: eka_chunks
+
+      # ----- Object storage (use Render Disk or external S3) -----
+      - key: S3_ENDPOINT_URL
+        sync: false
+      - key: S3_ACCESS_KEY
+        sync: false
+      - key: S3_SECRET_KEY
+        sync: false
+      - key: S3_BUCKET
+        value: eka-documents
+      - key: S3_REGION
+        value: us-east-1
+      - key: S3_USE_SSL
+        value: "true"
+
+      # ----- Auth (Clerk) -----
+      - key: AUTH_PROVIDER
+        value: clerk
+      - key: CLERK_JWKS_URL
+        sync: false
+      - key: CLERK_ISSUER
+        sync: false
+      - key: CLERK_SECRET_KEY
+        sync: false
+      - key: CLERK_WEBHOOK_SECRET
+        sync: false
+
+      # ----- AI (Gemini) -----
+      - key: LLM_PROVIDER
+        value: gemini
+      - key: EMBEDDING_PROVIDER
+        value: gemini
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: gemini-3.6-flash
+      - key: EMBEDDING_MODEL
+        value: text-embedding-004
+      - key: EMBEDDING_DIM
+        value: "768"
+
+      # ----- Chat -----
+      - key: CHAT_MODE
+        value: agentic
+
+      # ----- CORS: allow Vercel frontend -----
+      - key: BACKEND_CORS_ORIGINS
+        sync: false   # e.g. https://your-app.vercel.app,https://yourdomain.com
+
+  # ---------------------------------------------------------------------------
+  # Redis
+  # ---------------------------------------------------------------------------
+  - type: redis
+    name: eka-redis
+    region: oregon
+    plan: starter
+    maxmemoryPolicy: noeviction
+    ipAllowList: []   # only allow internal Render network
+
+databases:
+  # ---------------------------------------------------------------------------
+  # PostgreSQL
+  # ---------------------------------------------------------------------------
+  - name: eka-db
+    region: oregon
+    plan: starter
+    databaseName: eka
+    user: eka
