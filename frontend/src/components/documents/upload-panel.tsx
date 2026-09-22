@@ -1,9 +1,11 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { UploadCloud, Link2, Loader2 } from "lucide-react";
 
 import type { ApiError } from "@/lib/api";
 import { useIngestUrl, useUploadDocument } from "@/lib/documents";
+import { Button } from "@/components/ui/button";
 
 export function UploadPanel({ orgId }: { orgId: string }) {
   const upload = useUploadDocument(orgId);
@@ -33,8 +35,8 @@ export function UploadPanel({ orgId }: { orgId: string }) {
 
       {/* File Upload Zone */}
       <form>
-        <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-6 text-center cursor-pointer transition-colors hover:border-indigo-400 hover:bg-indigo-50/30">
-          <span className="text-2xl mb-1">📤</span>
+        <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-6 text-center transition-colors hover:border-indigo-400 hover:bg-indigo-50/30">
+          <UploadCloud className="mb-1.5 h-6 w-6 text-indigo-500" aria-hidden />
           <span className="text-xs font-semibold text-slate-800">
             Click to upload document or drag and drop
           </span>
@@ -51,12 +53,13 @@ export function UploadPanel({ orgId }: { orgId: string }) {
           />
         </label>
         {upload.isPending && (
-          <p className="mt-2 text-xs text-indigo-600 font-medium animate-pulse">
-            ⏳ Processing and indexing chunks into Qdrant…
+          <p className="mt-2 flex items-center gap-1.5 text-xs font-medium text-indigo-600">
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            Processing and indexing chunks into Qdrant…
           </p>
         )}
         {upload.error && (
-          <p className="mt-2 text-xs text-rose-500 font-medium">
+          <p className="mt-2 text-xs font-medium text-rose-500">
             {(upload.error as ApiError).message}
           </p>
         )}
@@ -65,23 +68,23 @@ export function UploadPanel({ orgId }: { orgId: string }) {
       {/* URL Ingestion */}
       <form onSubmit={onUrl} className="flex flex-col gap-2 sm:flex-row">
         <div className="relative flex-1">
-          <span className="absolute inset-y-0 left-3 flex items-center text-xs text-slate-400">
-            🔗
-          </span>
+          <Link2 className="absolute inset-y-0 left-3 my-auto h-3.5 w-3.5 text-slate-400" aria-hidden />
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://docs.example.com/guide to scrape"
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-8 pr-3 py-2 text-xs text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
+            className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pl-8 pr-3 text-xs text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
           />
         </div>
-        <button
+        <Button
           type="submit"
+          size="sm"
+          variant="secondary"
           disabled={ingest.isPending || !url.trim()}
-          className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-slate-800 disabled:opacity-50 transition-colors"
+          className="border-slate-900 bg-slate-900 text-white hover:bg-slate-800 hover:text-white"
         >
           {ingest.isPending ? "Ingesting…" : "Index URL"}
-        </button>
+        </Button>
       </form>
       {ingest.error && (
         <p className="text-xs text-rose-500 font-medium">

@@ -15,6 +15,7 @@ import { useState, type ReactNode } from "react";
 import { ClerkAuthBridge } from "@/lib/auth/clerk-auth";
 import { DevAuthProvider } from "@/lib/auth/dev-auth";
 import { AUTH_MODE } from "@/lib/config";
+import { ToastProvider } from "@/components/ui/toast";
 
 export function Providers({ children }: { children: ReactNode }) {
   const [queryClient] = useState(
@@ -28,11 +29,13 @@ export function Providers({ children }: { children: ReactNode }) {
 
   const inner = (
     <QueryClientProvider client={queryClient}>
-      {AUTH_MODE === "clerk" ? (
-        <ClerkAuthBridge>{children}</ClerkAuthBridge>
-      ) : (
-        <DevAuthProvider>{children}</DevAuthProvider>
-      )}
+      <ToastProvider>
+        {AUTH_MODE === "clerk" ? (
+          <ClerkAuthBridge>{children}</ClerkAuthBridge>
+        ) : (
+          <DevAuthProvider>{children}</DevAuthProvider>
+        )}
+      </ToastProvider>
     </QueryClientProvider>
   );
 

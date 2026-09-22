@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BarChart3 } from "lucide-react";
 
 import { getSystemConfig, type DocumentItem, type SystemConfig } from "@/lib/api";
 
@@ -39,22 +40,11 @@ export function AnalyticsWidget({ documents }: AnalyticsWidgetProps) {
   const pendingPercent = totalDocs > 0 ? (pendingCount / totalDocs) * 100 : 0;
 
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-4">
+    <div className="eka-card space-y-4 p-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <span className="text-slate-400 select-none text-base">⠿</span>
-          <h2 className="text-sm font-bold text-slate-800 tracking-tight">Analytics</h2>
-        </div>
-        <span className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer">
-          View all
-        </span>
-      </div>
-
-      {/* Filter Dropdown */}
-      <div className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 shadow-2xs">
-        <span>Last 30 days</span>
-        <span className="text-[10px] text-slate-400">▼</span>
+      <div className="flex items-center gap-2">
+        <BarChart3 className="h-4 w-4 text-indigo-500" aria-hidden />
+        <h2 className="text-sm font-bold tracking-tight text-slate-800">Analytics</h2>
       </div>
 
       {/* Counter */}

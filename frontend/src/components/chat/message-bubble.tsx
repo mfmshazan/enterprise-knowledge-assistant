@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Brain, BookText, ChevronDown, ChevronUp } from "lucide-react";
+
 import type { AgentStepTrace, ChatMessageItem, Citation } from "@/lib/api";
 import { MarkdownRenderer } from "@/components/chat/markdown-renderer";
 
@@ -61,10 +63,19 @@ function AgentTraceAccordion({ traces }: { traces: AgentStepTrace[] }) {
         className="flex w-full items-center justify-between text-indigo-900 hover:text-indigo-950 font-medium"
       >
         <span className="flex items-center gap-1.5 font-bold">
-          <span>🧠</span> Agent Reasoning &amp; Verification Trace ({traces.length} steps)
+          <Brain className="h-3.5 w-3.5" aria-hidden /> Agent Reasoning &amp; Verification Trace (
+          {traces.length} steps)
         </span>
-        <span className="text-[11px] font-semibold text-indigo-600">
-          {open ? "▲ Hide" : "▼ Show"}
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-indigo-600">
+          {open ? (
+            <>
+              <ChevronUp className="h-3.5 w-3.5" aria-hidden /> Hide
+            </>
+          ) : (
+            <>
+              <ChevronDown className="h-3.5 w-3.5" aria-hidden /> Show
+            </>
+          )}
         </span>
       </button>
 
@@ -132,7 +143,8 @@ export function MessageBubble({ message }: { message: ChatMessageItem }) {
         {!isUser && message.citations.length > 0 && (
           <div className="space-y-2.5 border-t border-slate-100 pt-3">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-700">
-              <span>📚</span> Verified Source Citations ({message.citations.length})
+              <BookText className="h-3.5 w-3.5 text-indigo-500" aria-hidden /> Verified Source
+              Citations ({message.citations.length})
             </div>
             <div className="grid gap-2 sm:grid-cols-2">
               {message.citations.map((c) => (

@@ -32,15 +32,61 @@ body {
   min-height: 100vh;
 }
 
-/* Zendesk Card Surfaces */
-.zendesk-card {
+/* Zendesk Card Surfaces (legacy alias kept for existing usages) */
+.zendesk-card,
+.eka-card {
   background-color: #ffffff;
   border: 1px solid #eef2f6;
   border-radius: 1.25rem;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 1px 2px -1px rgba(15, 23, 42, 0.06),
+    0 1px 3px 0 rgba(15, 23, 42, 0.05);
+  transition: box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.zendesk-card:hover {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+.zendesk-card:hover,
+.eka-card-interactive:hover {
+  box-shadow:
+    0 10px 15px -3px rgba(15, 23, 42, 0.08),
+    0 4px 6px -4px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+/* Shimmer for skeleton loading states */
+@keyframes eka-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+.eka-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.55) 25%,
+    rgba(241, 245, 249, 0.9) 37%,
+    rgba(226, 232, 240, 0.55) 63%
+  );
+  background-size: 800px 100%;
+  animation: eka-shimmer 1.4s ease-in-out infinite;
+  border-radius: 0.5rem;
+}
+
+/* Toast entrance */
+@keyframes eka-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.eka-toast {
+  animation: eka-toast-in 0.18s cubic-bezier(0.4, 0, 0.2, 1);
 }

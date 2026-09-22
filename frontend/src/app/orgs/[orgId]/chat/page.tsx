@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, Plus, X, MessageSquare, Brain, Zap, Sparkles, Send, Menu } from "lucide-react";
 
 import { MessageBubble } from "@/components/chat/message-bubble";
 import {
@@ -32,6 +33,7 @@ export default function ChatPage() {
   const [streamSteps, setStreamSteps] = useState<AgentStepTrace[]>([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [localTracesMap, setLocalTracesMap] = useState<Record<string, AgentStepTrace[]>>({});
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const threadEndRef = useRef<HTMLDivElement>(null);
 
   const conversations = useConversations(orgId);
@@ -47,8 +49,8 @@ export default function ChatPage() {
 
   if (!isLoaded || !isSignedIn) {
     return (
-      <main className="flex min-h-screen items-center justify-center ambient-canvas">
-        <p className="text-slate-500 font-medium text-sm">Loading chat…</p>
+      <main className="ambient-canvas flex min-h-screen items-center justify-center">
+        <p className="text-sm font-medium text-slate-500">Loading chat…</p>
       </main>
     );
   }
@@ -128,23 +130,47 @@ export default function ChatPage() {
   return (
     <div className="h-screen ambient-canvas flex flex-col p-4 sm:p-6">
       <main className="mx-auto flex w-full max-w-7xl flex-1 gap-5 overflow-hidden">
-        {/* Left Rail: Conversations */}
-        <aside className="hidden md:flex w-64 flex-col rounded-2xl border border-slate-200/90 bg-white p-4 shadow-sm">
-          <Link
-            href={`/orgs/${orgId}`}
-            className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-900 transition-colors"
-          >
-            <span>←</span> Knowledge Base
-          </Link>
+        {/* Mobile drawer backdrop */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 z-30 bg-slate-900/40 backdrop-blur-xs md:hidden"
+            onClick={() => setSidebarOpen(false)}
+            role="presentation"
+          />
+        )}
+
+        {/* Left Rail: Conversations (static on desktop, slide-in drawer on mobile) */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-slate-200/90 bg-white p-4 shadow-xl transition-transform md:static md:z-auto md:translate-x-0 md:rounded-2xl md:border md:shadow-sm ${
+            sidebarOpen ? "translate-x-0" : "-translate-x-full"
+          }`}
+        >
+          <div className="mb-4 flex items-center justify-between">
+            <Link
+              href={`/orgs/${orgId}`}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" aria-hidden /> Knowledge Base
+            </Link>
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(false)}
+              aria-label="Close conversations"
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 md:hidden"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          </div>
 
           <button
             onClick={() => {
               setConversationId(null);
               setErrorMessage(null);
+              setSidebarOpen(false);
             }}
-            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2.5 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition-colors"
+            className="flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-3 py-2.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700"
           >
-            <span>+</span> New Chat
+            <Plus className="h-4 w-4" aria-hidden /> New Chat
           </button>
 
           <div className="mt-5 min-h-0 flex-1 overflow-y-auto">
@@ -157,7 +183,7 @@ export default function ChatPage() {
                   key={c.id}
                   className={`group flex items-center justify-between rounded-xl px-2.5 py-1.5 text-xs transition-colors ${
                     c.id === conversationId
-                      ? "bg-indigo-50 font-semibold text-indigo-900 border border-indigo-200/80"
+                      ? "border border-indigo-200/80 bg-indigo-50 font-semibold text-indigo-900"
                       : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                   }`}
                 >
@@ -165,6 +191,7 @@ export default function ChatPage() {
                     onClick={() => {
                       setConversationId(c.id);
                       setErrorMessage(null);
+                      setSidebarOpen(false);
                     }}
                     className="flex-1 truncate py-1 text-left"
                     title={c.title}
@@ -174,10 +201,10 @@ export default function ChatPage() {
                   <button
                     type="button"
                     onClick={(e) => handleDeleteConversation(c.id, e)}
-                    title="Delete conversation"
-                    className="ml-1 opacity-0 group-hover:opacity-100 rounded p-1 text-slate-400 hover:text-rose-600 transition-all text-xs"
+                    aria-label="Delete conversation"
+                    className="ml-1 rounded p-1 text-slate-400 opacity-0 transition-all hover:text-rose-600 group-hover:opacity-100"
                   >
-                    ✕
+                    <X className="h-3.5 w-3.5" aria-hidden />
                   </button>
                 </li>
               ))}
@@ -190,11 +217,19 @@ export default function ChatPage() {
           {/* Header */}
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2.5">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-base font-bold text-indigo-600">
-                💬
+              <button
+                type="button"
+                onClick={() => setSidebarOpen(true)}
+                aria-label="Open conversations"
+                className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-800 md:hidden"
+              >
+                <Menu className="h-5 w-5" aria-hidden />
+              </button>
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                <MessageSquare className="h-4 w-4" aria-hidden />
               </div>
               <div>
-                <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+                <h2 className="text-sm font-bold tracking-tight text-slate-900">
                   Knowledge Assistant
                 </h2>
                 <p className="text-[11px] text-slate-400">
@@ -214,7 +249,7 @@ export default function ChatPage() {
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <span>🧠</span> Agentic AI (LangGraph)
+                <Brain className="h-3.5 w-3.5" aria-hidden /> Agentic AI
               </button>
               <button
                 type="button"
@@ -225,7 +260,7 @@ export default function ChatPage() {
                     : "text-slate-500 hover:text-slate-800"
                 }`}
               >
-                <span>⚡</span> Fast Linear RAG
+                <Zap className="h-3.5 w-3.5" aria-hidden /> Fast Linear
               </button>
             </div>
           </div>
@@ -234,7 +269,7 @@ export default function ChatPage() {
           <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-1 py-2">
             {messages.length === 0 && !isStreaming && (
               <div className="flex h-full flex-col items-center justify-center gap-2 text-center text-slate-400">
-                <span className="text-4xl">✨</span>
+                <Sparkles className="h-9 w-9 text-indigo-300" aria-hidden />
                 <p className="text-sm font-semibold text-slate-800">
                   Ask anything about your documents
                 </p>
@@ -301,10 +336,10 @@ export default function ChatPage() {
             <button
               type="submit"
               disabled={isStreaming || !input.trim()}
-              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-3 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 rounded-xl bg-indigo-600 px-5 py-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:opacity-50 sm:text-sm"
             >
-              <span>Send</span>
-              <span>↵</span>
+              <span className="hidden sm:inline">Send</span>
+              <Send className="h-4 w-4" aria-hidden />
             </button>
           </form>
         </section>

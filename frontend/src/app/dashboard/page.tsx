@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Building2, Plus, Loader2 } from "lucide-react";
 
 import { ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth/context";
 import { useCreateOrg, useMe } from "@/lib/hooks";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function CreateOrgForm() {
   const createOrg = useCreateOrg();
@@ -26,15 +30,11 @@ function CreateOrgForm() {
         placeholder="e.g. Acme Support Team"
         className="flex-1 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs sm:text-sm text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
       />
-      <button
-        type="submit"
-        disabled={createOrg.isPending || !name.trim()}
-        className="rounded-xl bg-indigo-600 px-5 py-2.5 text-xs sm:text-sm font-semibold text-white shadow-sm hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-      >
+      <Button type="submit" disabled={createOrg.isPending || !name.trim()}>
         {createOrg.isPending ? "Creating…" : "Create Organization"}
-      </button>
+      </Button>
       {createOrg.error && (
-        <span className="self-center text-xs text-rose-500 font-medium">
+        <span className="self-center text-xs font-medium text-rose-500">
           {(createOrg.error as ApiError).message}
         </span>
       )}
@@ -53,9 +53,9 @@ export default function DashboardPage() {
 
   if (!isLoaded || !isSignedIn) {
     return (
-      <main className="flex min-h-screen items-center justify-center ambient-canvas">
+      <main className="ambient-canvas flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-          <span className="animate-spin text-lg">⏳</span> Loading dashboard…
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading dashboard…
         </div>
       </main>
     );
@@ -79,23 +79,24 @@ export default function DashboardPage() {
               <p className="text-xs text-slate-500">{userLabel}</p>
             </div>
           </div>
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => {
               void signOut();
               router.replace("/sign-in");
             }}
-            className="rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-colors shadow-2xs"
           >
             Sign out
-          </button>
+          </Button>
         </header>
 
         {/* Organizations List Card */}
         <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-4">
           <div className="flex items-center justify-between border-b border-slate-100 pb-3">
             <div className="flex items-center gap-2">
-              <span className="text-slate-400 select-none text-base">⠿</span>
-              <h2 className="text-sm font-bold text-slate-900 tracking-tight">Your Organizations</h2>
+              <Building2 className="h-4 w-4 text-indigo-500" aria-hidden />
+              <h2 className="text-sm font-bold tracking-tight text-slate-900">Your Organizations</h2>
             </div>
             <span className="text-xs font-medium text-slate-400">
               {me.data?.memberships.length ?? 0} active
@@ -103,9 +104,11 @@ export default function DashboardPage() {
           </div>
 
           {me.isLoading && (
-            <p className="py-6 text-center text-xs text-slate-400 animate-pulse">
-              Loading your workspaces…
-            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <Skeleton key={i} className="h-[70px] rounded-xl" />
+              ))}
+            </div>
           )}
 
           {me.error && (
@@ -116,8 +119,8 @@ export default function DashboardPage() {
 
           {me.data && me.data.memberships.length === 0 && (
             <div className="py-8 text-center">
-              <span className="text-3xl">🏢</span>
-              <p className="mt-2 text-xs text-slate-500 font-medium">
+              <Building2 className="mx-auto h-8 w-8 text-slate-300" aria-hidden />
+              <p className="mt-2 text-xs font-medium text-slate-500">
                 No organizations yet. Create your first workspace below!
               </p>
             </div>
@@ -133,18 +136,18 @@ export default function DashboardPage() {
                 >
                   <div className="min-w-0 pr-2">
                     <div className="flex items-center gap-2">
-                      <span className="text-base">🏢</span>
-                      <h3 className="truncate text-sm font-semibold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      <Building2 className="h-4 w-4 shrink-0 text-slate-400" aria-hidden />
+                      <h3 className="truncate text-sm font-semibold text-slate-800 transition-colors group-hover:text-indigo-600">
                         {m.organization.name}
                       </h3>
                     </div>
-                    <p className="mt-1 text-[11px] text-slate-400 truncate">
+                    <p className="mt-1 truncate text-[11px] text-slate-400">
                       slug: {m.organization.slug}
                     </p>
                   </div>
-                  <span className="shrink-0 rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-700">
+                  <Badge tone="indigo" uppercase className="shrink-0">
                     {m.role}
-                  </span>
+                  </Badge>
                 </Link>
               ))}
             </div>
@@ -154,8 +157,8 @@ export default function DashboardPage() {
         {/* Create Organization Card */}
         <section className="rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-indigo-600 text-sm">➕</span>
-            <h2 className="text-sm font-bold text-slate-900 tracking-tight">
+            <Plus className="h-4 w-4 text-indigo-500" aria-hidden />
+            <h2 className="text-sm font-bold tracking-tight text-slate-900">
               Create New Organization
             </h2>
           </div>

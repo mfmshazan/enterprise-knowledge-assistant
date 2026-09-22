@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { FolderOpen, Users, ScrollText, KeyRound, MessageSquare, Loader2 } from "lucide-react";
 
 import { AiAssistantBanner } from "@/components/dashboard/ai-assistant-banner";
 import { AnalyticsWidget } from "@/components/dashboard/analytics-widget";
@@ -33,9 +34,9 @@ export default function OrgWorkspacePage() {
 
   if (!isLoaded || !isSignedIn) {
     return (
-      <main className="flex min-h-screen items-center justify-center ambient-canvas">
+      <main className="ambient-canvas flex min-h-screen items-center justify-center">
         <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
-          <span className="animate-spin text-lg">⏳</span> Loading workspace…
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> Loading workspace…
         </div>
       </main>
     );
@@ -55,9 +56,9 @@ export default function OrgWorkspacePage() {
           <div className="flex items-center gap-3">
             <Link
               href={`/orgs/${orgId}/chat`}
-              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-indigo-700 transition-all active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 active:scale-95"
             >
-              <span>💬</span> AI Chat
+              <MessageSquare className="h-4 w-4" aria-hidden /> AI Chat
             </Link>
           </div>
         </div>
@@ -66,47 +67,27 @@ export default function OrgWorkspacePage() {
         <AiAssistantBanner userName={userLabel} orgId={orgId} />
 
         {/* 2. The 4 Workspace Navigation Tabs Just Below the Ask AI Bar */}
-        <div className="flex items-center gap-2 border-b border-slate-200/80 pb-3 overflow-x-auto scrollbar-none pt-1">
-          <button
-            onClick={() => setActiveTab("documents")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
-              activeTab === "documents"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "text-slate-600 hover:bg-white hover:text-slate-900"
-            }`}
-          >
-            <span>📁</span> Knowledge Base
-          </button>
-          <button
-            onClick={() => setActiveTab("team")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
-              activeTab === "team"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "text-slate-600 hover:bg-white hover:text-slate-900"
-            }`}
-          >
-            <span>👥</span> Team &amp; Roles
-          </button>
-          <button
-            onClick={() => setActiveTab("audit")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
-              activeTab === "audit"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "text-slate-600 hover:bg-white hover:text-slate-900"
-            }`}
-          >
-            <span>📜</span> Audit Trail
-          </button>
-          <button
-            onClick={() => setActiveTab("api_keys")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-xs transition-all whitespace-nowrap ${
-              activeTab === "api_keys"
-                ? "bg-slate-900 text-white shadow-sm"
-                : "text-slate-600 hover:bg-white hover:text-slate-900"
-            }`}
-          >
-            <span>🔑</span> API Keys
-          </button>
+        <div className="scrollbar-none flex items-center gap-2 overflow-x-auto border-b border-slate-200/80 pb-3 pt-1">
+          {(
+            [
+              { id: "documents", label: "Knowledge Base", Icon: FolderOpen },
+              { id: "team", label: "Team & Roles", Icon: Users },
+              { id: "audit", label: "Audit Trail", Icon: ScrollText },
+              { id: "api_keys", label: "API Keys", Icon: KeyRound },
+            ] as const
+          ).map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`flex items-center gap-2 whitespace-nowrap rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+                activeTab === id
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "text-slate-600 hover:bg-white hover:text-slate-900"
+              }`}
+            >
+              <Icon className="h-4 w-4" aria-hidden /> {label}
+            </button>
+          ))}
         </div>
 
         {/* 3. Tab Contents */}

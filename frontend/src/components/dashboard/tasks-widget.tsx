@@ -1,111 +1,86 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import type { DocumentItem } from "@/lib/api";
+import { Activity, Globe, FileText, File, ArrowRight } from "lucide-react";
 
-interface TasksWidgetProps {
+import type { DocumentItem } from "@/lib/api";
+import { StatusBadge } from "@/components/documents/status-badge";
+
+interface RecentActivityWidgetProps {
   documents: DocumentItem[];
   orgId: string;
 }
 
-export function TasksWidget({ documents, orgId }: TasksWidgetProps) {
-  const [checkedIds, setCheckedIds] = useState<Record<string, boolean>>({});
-  const [starredIds, setStarredIds] = useState<Record<string, boolean>>({});
+function relativeTime(dateString: string): string {
+  try {
+    const diffMins = Math.floor((Date.now() - new Date(dateString).getTime()) / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const h = Math.floor(diffMins / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  } catch {
+    return "recently";
+  }
+}
 
-  const toggleCheck = (id: string) => {
-    setCheckedIds((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
+function DocIcon({ doc }: { doc: DocumentItem }) {
+  const cls = "h-3.5 w-3.5 text-slate-400";
+  if (doc.source_type === "url") return <Globe className={cls} aria-hidden />;
+  if (doc.filename?.endsWith(".pdf")) return <FileText className={cls} aria-hidden />;
+  return <File className={cls} aria-hidden />;
+}
 
-  const toggleStar = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setStarredIds((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
-
-  const displayDocs = documents.slice(0, 5);
+/**
+ * Recent Activity — driven entirely by real document data (latest uploads with
+ * their live ingestion status), replacing the former mock "Knowledge Tasks".
+ */
+export function TasksWidget({ documents, orgId }: RecentActivityWidgetProps) {
+  const recent = [...documents]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .slice(0, 5);
 
   return (
-    <div className="h-full flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm space-y-3.5">
+    <div className="eka-card flex h-full flex-col justify-between space-y-3.5 p-5">
       <div className="space-y-3.5">
         {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-sm font-bold text-slate-800 tracking-tight">Knowledge Tasks</h2>
-        <span className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 cursor-pointer">
-          View all
-        </span>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs">
-        <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 font-medium text-slate-700">
-          <span>Assign to me</span>
-          <span className="text-[9px] text-slate-400">▼</span>
+        <div className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-indigo-500" aria-hidden />
+          <h2 className="text-sm font-bold tracking-tight text-slate-800">Recent Activity</h2>
         </div>
-        <span className="rounded-lg bg-indigo-50 px-2.5 py-1 font-medium text-indigo-600">
-          Workflow
-        </span>
-        <span className="rounded-lg px-2.5 py-1 font-medium text-slate-500 hover:bg-slate-50 cursor-pointer">
-          Feedback
-        </span>
-      </div>
 
-      {/* Checklist List */}
-      <div className="divide-y divide-slate-100">
-        {displayDocs.length === 0 ? (
-          <p className="py-4 text-center text-xs text-slate-400">
-            No knowledge tasks yet. Upload documents to populate.
-          </p>
-        ) : (
-          displayDocs.map((doc) => (
-            <div
-              key={doc.id}
-              onClick={() => toggleCheck(doc.id)}
-              className="group flex items-center justify-between py-2.5 cursor-pointer hover:bg-slate-50/80 px-1 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-2.5 min-w-0 pr-2">
-                <input
-                  type="checkbox"
-                  checked={!!checkedIds[doc.id]}
-                  onChange={() => toggleCheck(doc.id)}
-                  onClick={(e) => e.stopPropagation()}
-                  className="h-3.5 w-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-amber-500 text-xs select-none">📁</span>
-                <span
-                  className={`text-xs font-medium truncate ${
-                    checkedIds[doc.id]
-                      ? "line-through text-slate-400"
-                      : "text-slate-700 group-hover:text-slate-900"
-                  }`}
-                  title={doc.title}
-                >
-                  {doc.title}
-                </span>
+        {/* Activity list */}
+        <div className="divide-y divide-slate-100">
+          {recent.length === 0 ? (
+            <p className="py-4 text-center text-xs text-slate-400">
+              No activity yet. Upload documents to get started.
+            </p>
+          ) : (
+            recent.map((doc) => (
+              <div key={doc.id} className="flex items-center justify-between gap-2 py-2.5">
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <DocIcon doc={doc} />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium text-slate-700" title={doc.title}>
+                      {doc.title}
+                    </p>
+                    <p className="text-[10px] text-slate-400">{relativeTime(doc.created_at)}</p>
+                  </div>
+                </div>
+                <StatusBadge status={doc.status} />
               </div>
-              <button
-                type="button"
-                onClick={(e) => toggleStar(doc.id, e)}
-                className="text-xs transition-colors p-0.5"
-                title="Star task"
-              >
-                {starredIds[doc.id] ? (
-                  <span className="text-amber-400">★</span>
-                ) : (
-                  <span className="text-slate-300 group-hover:text-slate-400">☆</span>
-                )}
-              </button>
-            </div>
-          ))
-        )}
-      </div>
+            ))
+          )}
+        </div>
       </div>
 
       <div className="pt-2">
         <Link
           href={`/orgs/${orgId}/chat`}
-          className="block w-full text-center rounded-xl bg-slate-50 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-slate-50 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-100"
         >
-          Ask AI about these tasks →
+          Ask AI about your documents
+          <ArrowRight className="h-3.5 w-3.5" aria-hidden />
         </Link>
       </div>
     </div>

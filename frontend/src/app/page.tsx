@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { Brain, UploadCloud, Workflow, Quote, ArrowRight } from "lucide-react";
+
 import { HealthStatus } from "@/components/health-status";
 
 export default function Home() {
@@ -15,8 +17,9 @@ export default function Home() {
             LangGraph Multi-Agent AI &amp; Self-Correcting RAG
           </div>
 
-          <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
-            🧠 Enterprise Knowledge Assistant
+          <h1 className="flex items-center gap-3 text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl">
+            <Brain className="h-9 w-9 shrink-0 text-indigo-600 sm:h-11 sm:w-11" aria-hidden />
+            Enterprise Knowledge Assistant
           </h1>
           <p className="max-w-2xl text-base text-slate-600 leading-relaxed sm:text-lg">
             Upload enterprise documents and web knowledge, then let your organization query and receive{" "}
@@ -32,7 +35,7 @@ export default function Home() {
             className="flex items-center gap-2 rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-600/20 transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-95"
           >
             <span>Go to dashboard</span>
-            <span>→</span>
+            <ArrowRight className="h-4 w-4" aria-hidden />
           </Link>
           <Link
             href="/sign-in"
@@ -44,33 +47,36 @@ export default function Home() {
 
         {/* Feature Cards Grid */}
         <section className="grid gap-4 sm:grid-cols-3">
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-slate-300">
-            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-xl text-indigo-600">
-              📥
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-md">
+            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <UploadCloud className="h-5 w-5" aria-hidden />
             </div>
             <h3 className="text-sm font-bold text-slate-900">Ingestion Pipeline</h3>
-            <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-              PDF, DOCX, TXT, and Web scraping with recursive chunking and 768-dimensional vector indexing.
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+              PDF, DOCX, TXT, and web scraping with recursive chunking and high-dimensional vector
+              indexing.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5 shadow-xs transition-all hover:shadow-md hover:border-indigo-300">
-            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-xl text-indigo-700">
-              🧠
+          <div className="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-5 shadow-xs transition-all hover:border-indigo-300 hover:shadow-md">
+            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+              <Workflow className="h-5 w-5" aria-hidden />
             </div>
             <h3 className="text-sm font-bold text-indigo-950">LangGraph Agents</h3>
-            <p className="mt-1.5 text-xs text-slate-600 leading-relaxed">
-              Multi-agent cycle (Planner → Retriever → Generator → Verifier) eliminating hallucinations.
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-600">
+              Multi-agent cycle (Planner → Retriever → Generator → Verifier) eliminating
+              hallucinations.
             </p>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:shadow-md hover:border-slate-300">
-            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-xl text-emerald-600">
-              📚
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xs transition-all hover:border-slate-300 hover:shadow-md">
+            <div className="mb-2.5 flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+              <Quote className="h-5 w-5" aria-hidden />
             </div>
             <h3 className="text-sm font-bold text-slate-900">Verified Citations</h3>
-            <p className="mt-1.5 text-xs text-slate-500 leading-relaxed">
-              Traceable source passages and rank attribution linked directly to each assistant answer.
+            <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+              Traceable source passages and rank attribution linked directly to each assistant
+              answer.
             </p>
           </div>
         </section>

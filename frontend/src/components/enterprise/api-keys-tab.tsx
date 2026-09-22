@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { KeyRound, Plus, AlertTriangle } from "lucide-react";
+
 import { useAuth } from "@/lib/auth/context";
 import {
   ApiKeyItem,
@@ -9,6 +11,12 @@ import {
   listApiKeys,
   revokeApiKey,
 } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/components/ui/toast";
 
 interface ApiKeysTabProps {
   orgId: string;
@@ -16,6 +24,7 @@ interface ApiKeysTabProps {
 
 export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
   const { getToken } = useAuth();
+  const { toast } = useToast();
   const [keys, setKeys] = useState<ApiKeyItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +38,10 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
   // Key revelation modal
   const [newKeyData, setNewKeyData] = useState<ApiKeyCreatedResponse | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Revoke confirmation
+  const [revokeTarget, setRevokeTarget] = useState<{ id: string; name: string } | null>(null);
+  const [revoking, setRevoking] = useState(false);
 
   const fetchKeys = useCallback(async () => {
     try {
@@ -64,22 +77,25 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
       setNewKeyData(res);
       fetchKeys();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to create API key");
+      toast(err instanceof Error ? err.message : "Failed to create API key", "error");
     } finally {
       setCreating(false);
     }
   };
 
-  const handleRevoke = async (keyId: string, name: string) => {
-    if (!confirm(`Are you sure you want to revoke API key "${name}"? This action cannot be undone.`)) {
-      return;
-    }
+  const confirmRevoke = async () => {
+    if (!revokeTarget) return;
     try {
+      setRevoking(true);
       const token = await getToken();
-      await revokeApiKey(token, orgId, keyId);
+      await revokeApiKey(token, orgId, revokeTarget.id);
+      toast(`Revoked "${revokeTarget.name}".`, "success");
+      setRevokeTarget(null);
       fetchKeys();
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "Failed to revoke API key");
+      toast(err instanceof Error ? err.message : "Failed to revoke API key", "error");
+    } finally {
+      setRevoking(false);
     }
   };
 
@@ -92,219 +108,223 @@ export function ApiKeysTab({ orgId }: ApiKeysTabProps) {
   return (
     <div className="space-y-6">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>🔑</span> Developer API Keys
+          <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900">
+            <KeyRound className="h-5 w-5 text-indigo-500" aria-hidden /> Developer API Keys
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Machine-to-machine authentication keys for integrating external pipelines, CLI tools, and automation bots.
+          <p className="mt-0.5 text-xs text-slate-500">
+            Machine-to-machine authentication keys for integrating external pipelines, CLI tools,
+            and automation bots.
           </p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-all shadow-sm active:scale-95"
-        >
-          <span>➕</span> Generate New API Key
-        </button>
+        <Button size="sm" onClick={() => setShowCreateModal(true)}>
+          <Plus className="h-4 w-4" aria-hidden /> Generate New API Key
+        </Button>
       </div>
 
       {error && (
-        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold">
-          ⚠ {error}
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800">
+          {error}
         </div>
       )}
 
       {/* Keys Table */}
-      <div className="border border-slate-200/80 rounded-2xl overflow-hidden bg-white shadow-xs">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         {loading ? (
-          <div className="p-12 text-center text-xs text-slate-400">Loading API keys...</div>
+          <div className="space-y-3 p-6">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
         ) : keys.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-400">
             No API keys created yet. Click Generate New API Key to create your first machine key.
           </div>
         ) : (
-          <table className="w-full text-left text-sm text-slate-700">
-            <thead className="bg-slate-50/80 text-[11px] uppercase font-bold tracking-wider text-slate-500 border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-3.5">Key Name</th>
-                <th className="px-6 py-3.5">Key Prefix</th>
-                <th className="px-6 py-3.5">Created</th>
-                <th className="px-6 py-3.5">Status</th>
-                <th className="px-6 py-3.5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 text-xs">
-              {keys.map((k) => (
-                <tr key={k.id} className="hover:bg-slate-50/70 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="font-semibold text-slate-900">{k.name}</div>
-                    {k.expires_at && (
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        Expires: {new Date(k.expires_at).toLocaleDateString()}
-                      </div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs">
-                    <span className="px-2 py-0.5 bg-slate-100 rounded-md border border-slate-200 text-slate-700 font-semibold">
-                      {k.key_prefix}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-slate-500">
-                    {new Date(k.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    {k.is_active ? (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                        Active
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-rose-50 text-rose-700 border border-rose-200">
-                        <span className="h-1.5 w-1.5 rounded-full bg-rose-500" />
-                        Revoked
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    {k.is_active && (
-                      <button
-                        onClick={() => handleRevoke(k.id, k.name)}
-                        className="px-2.5 py-1.5 text-xs font-semibold text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-                      >
-                        Revoke
-                      </button>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm text-slate-700">
+              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="px-6 py-3.5">Key Name</th>
+                  <th className="px-6 py-3.5">Key Prefix</th>
+                  <th className="px-6 py-3.5">Created</th>
+                  <th className="px-6 py-3.5">Status</th>
+                  <th className="px-6 py-3.5 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {keys.map((k) => (
+                  <tr key={k.id} className="transition-colors hover:bg-slate-50/70">
+                    <td className="px-6 py-4">
+                      <div className="font-semibold text-slate-900">{k.name}</div>
+                      {k.expires_at && (
+                        <div className="mt-0.5 text-[11px] text-slate-400">
+                          Expires: {new Date(k.expires_at).toLocaleDateString()}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs">
+                      <span className="rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 font-semibold text-slate-700">
+                        {k.key_prefix}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500">
+                      {new Date(k.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4">
+                      {k.is_active ? (
+                        <Badge tone="emerald" dot uppercase>
+                          Active
+                        </Badge>
+                      ) : (
+                        <Badge tone="rose" dot uppercase>
+                          Revoked
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {k.is_active && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setRevokeTarget({ id: k.id, name: k.name })}
+                          className="text-slate-400 hover:bg-rose-50 hover:text-rose-600"
+                        >
+                          Revoke
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {/* Generate API Key Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-md w-full shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <span>🔑</span> Generate API Key
-              </h3>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="text-slate-400 hover:text-slate-700 text-sm font-semibold p-1 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Key Name
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={keyName}
-                  onChange={(e) => setKeyName(e.target.value)}
-                  placeholder="e.g. CI/CD Ingestion Worker"
-                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 text-xs sm:text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  Expiration
-                </label>
-                <div className="relative">
-                  <select
-                    value={expiresInDays ?? 0}
-                    onChange={(e) => {
-                      const val = Number(e.target.value);
-                      setExpiresInDays(val === 0 ? undefined : val);
-                    }}
-                    className="w-full appearance-none px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-800 text-xs sm:text-sm font-medium focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all cursor-pointer pr-9"
-                  >
-                    <option value={30}>30 days</option>
-                    <option value={90}>90 days</option>
-                    <option value={365}>1 year</option>
-                    <option value={0}>Never expires</option>
-                  </select>
-                  <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">
-                    ▼
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowCreateModal(false)}
-                  className="px-4 py-2 rounded-xl text-slate-600 hover:bg-slate-100 text-xs font-semibold transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs transition-colors disabled:opacity-50 shadow-sm"
-                >
-                  {creating ? "Generating..." : "Generate Key"}
-                </button>
-              </div>
-            </form>
+      <Modal
+        open={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        title={
+          <span className="flex items-center gap-2">
+            <KeyRound className="h-4 w-4 text-indigo-500" aria-hidden /> Generate API Key
+          </span>
+        }
+      >
+        <form onSubmit={handleCreate} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Key Name
+            </label>
+            <input
+              type="text"
+              required
+              value={keyName}
+              onChange={(e) => setKeyName(e.target.value)}
+              placeholder="e.g. CI/CD Ingestion Worker"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 transition-all focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/10 sm:text-sm"
+            />
           </div>
-        </div>
-      )}
+
+          <div>
+            <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-700">
+              Expiration
+            </label>
+            <div className="relative">
+              <select
+                value={expiresInDays ?? 0}
+                onChange={(e) => {
+                  const val = Number(e.target.value);
+                  setExpiresInDays(val === 0 ? undefined : val);
+                }}
+                className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 pr-9 text-xs font-medium text-slate-800 transition-all focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/10 sm:text-sm"
+              >
+                <option value={30}>30 days</option>
+                <option value={90}>90 days</option>
+                <option value={365}>1 year</option>
+                <option value={0}>Never expires</option>
+              </select>
+              <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-xs text-slate-400">
+                ▼
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setShowCreateModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" disabled={creating}>
+              {creating ? "Generating…" : "Generate Key"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* Secret Key Revealed Modal */}
-      {newKeyData && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-amber-300 rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-100 text-amber-700 text-xl">
-                ⚠️
-              </span>
-              <div>
-                <h3 className="text-base font-bold text-slate-900">Save Your API Secret Key</h3>
-                <p className="text-xs text-amber-700 font-medium">
-                  Copy this key now. You will never be able to view it again.
-                </p>
-              </div>
-            </div>
+      <Modal
+        open={newKeyData !== null}
+        onClose={() => setNewKeyData(null)}
+        size="max-w-lg"
+        title={
+          <span className="flex items-center gap-2 text-amber-700">
+            <AlertTriangle className="h-4 w-4" aria-hidden /> Save Your API Secret Key
+          </span>
+        }
+      >
+        {newKeyData && (
+          <div className="space-y-4">
+            <p className="text-xs font-medium text-amber-700">
+              Copy this key now. You will never be able to view it again.
+            </p>
 
             <div className="relative">
               <input
                 type="text"
                 readOnly
                 value={newKeyData.secret_key}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-xs text-slate-900 focus:outline-none pr-24 font-bold select-all"
+                className="w-full select-all rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 pr-24 font-mono text-xs font-bold text-slate-900 focus:outline-none"
               />
-              <button
+              <Button
+                size="sm"
                 onClick={() => copyToClipboard(newKeyData.secret_key)}
-                className="absolute right-2 top-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-2xs"
+                className="absolute right-2 top-1/2 -translate-y-1/2"
               >
-                {copied ? "Copied! ✓" : "Copy"}
-              </button>
+                {copied ? "Copied!" : "Copy"}
+              </Button>
             </div>
 
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-[11px] text-slate-600 space-y-1">
-              <div><strong className="text-slate-800">Key Name:</strong> {newKeyData.name}</div>
-              <div><strong className="text-slate-800">Prefix:</strong> <span className="font-mono">{newKeyData.key_prefix}</span></div>
+            <div className="space-y-1 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] text-slate-600">
+              <div>
+                <strong className="text-slate-800">Key Name:</strong> {newKeyData.name}
+              </div>
+              <div>
+                <strong className="text-slate-800">Prefix:</strong>{" "}
+                <span className="font-mono">{newKeyData.key_prefix}</span>
+              </div>
             </div>
 
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setNewKeyData(null)}
-                className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold transition-colors"
-              >
+            <div className="flex justify-end pt-1">
+              <Button size="sm" onClick={() => setNewKeyData(null)}>
                 Done
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
+
+      <ConfirmDialog
+        open={revokeTarget !== null}
+        title="Revoke API key"
+        description={`Revoke "${revokeTarget?.name}"? Any integration using this key will immediately stop working. This cannot be undone.`}
+        confirmLabel="Revoke"
+        danger
+        loading={revoking}
+        onConfirm={confirmRevoke}
+        onCancel={() => setRevokeTarget(null)}
+      />
     </div>
   );
 }

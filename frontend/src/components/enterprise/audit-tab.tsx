@@ -1,24 +1,30 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { ScrollText, Search } from "lucide-react";
+
 import { useAuth } from "@/lib/auth/context";
 import { AuditLogEntry, listAuditLogs } from "@/lib/api";
+import { Button } from "@/components/ui/button";
+import { Badge, type BadgeTone } from "@/components/ui/badge";
+import { Modal } from "@/components/ui/modal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface AuditTabProps {
   orgId: string;
 }
 
-const actionColors: Record<string, { bg: string; text: string; label: string }> = {
-  "document.upload": { bg: "bg-blue-50 border-blue-200", text: "text-blue-700", label: "Doc Upload" },
-  "document.upload_url": { bg: "bg-cyan-50 border-cyan-200", text: "text-cyan-700", label: "URL Ingest" },
-  "document.delete": { bg: "bg-rose-50 border-rose-200", text: "text-rose-700", label: "Doc Deleted" },
-  "member.invite": { bg: "bg-emerald-50 border-emerald-200", text: "text-emerald-700", label: "Member Invite" },
-  "member.role_update": { bg: "bg-purple-50 border-purple-200", text: "text-purple-700", label: "Role Change" },
-  "member.remove": { bg: "bg-rose-50 border-rose-200", text: "text-rose-700", label: "Member Removed" },
-  "api_key.create": { bg: "bg-amber-50 border-amber-200", text: "text-amber-700", label: "API Key Created" },
-  "api_key.revoke": { bg: "bg-orange-50 border-orange-200", text: "text-orange-700", label: "API Key Revoked" },
-  "chat.query": { bg: "bg-indigo-50 border-indigo-200", text: "text-indigo-700", label: "Chat Query" },
-  "organization.create": { bg: "bg-emerald-50 border-emerald-200", text: "text-emerald-700", label: "Org Created" },
+const actionMeta: Record<string, { tone: BadgeTone; label: string }> = {
+  "document.upload": { tone: "blue", label: "Doc Upload" },
+  "document.upload_url": { tone: "blue", label: "URL Ingest" },
+  "document.delete": { tone: "rose", label: "Doc Deleted" },
+  "member.invite": { tone: "emerald", label: "Member Invite" },
+  "member.role_update": { tone: "violet", label: "Role Change" },
+  "member.remove": { tone: "rose", label: "Member Removed" },
+  "api_key.create": { tone: "amber", label: "API Key Created" },
+  "api_key.revoke": { tone: "rose", label: "API Key Revoked" },
+  "chat.query": { tone: "indigo", label: "Chat Query" },
+  "organization.create": { tone: "emerald", label: "Org Created" },
 };
 
 export function AuditTab({ orgId }: AuditTabProps) {
@@ -57,27 +63,31 @@ export function AuditTab({ orgId }: AuditTabProps) {
   return (
     <div className="space-y-6">
       {/* Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h2 className="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
-            <span>📜</span> Security &amp; Audit Trail
+          <h2 className="flex items-center gap-2 text-lg font-bold tracking-tight text-slate-900">
+            <ScrollText className="h-5 w-5 text-indigo-500" aria-hidden /> Security &amp; Audit Trail
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Immutable audit trail of administrative events, access changes, document mutations, and LLM queries.
+          <p className="mt-0.5 text-xs text-slate-500">
+            Immutable audit trail of administrative events, access changes, document mutations, and
+            LLM queries.
           </p>
         </div>
 
         {/* Filter */}
         <div className="flex items-center gap-2.5">
-          <label className="text-xs font-semibold text-slate-600">Filter Action:</label>
+          <label className="text-xs font-semibold text-slate-600" htmlFor="audit-filter">
+            Filter Action:
+          </label>
           <div className="relative inline-block">
             <select
+              id="audit-filter"
               value={actionFilter}
               onChange={(e) => {
                 setActionFilter(e.target.value);
                 setPage(1);
               }}
-              className="appearance-none bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl pl-3 pr-8 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all cursor-pointer shadow-2xs"
+              className="cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 py-2 pl-3 pr-8 text-xs font-semibold text-slate-800 shadow-2xs transition-all hover:bg-slate-100 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/10"
             >
               <option value="">All Actions ({total})</option>
               <option value="document.upload">Document Upload</option>
@@ -97,114 +107,111 @@ export function AuditTab({ orgId }: AuditTabProps) {
       </div>
 
       {error && (
-        <div className="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs font-semibold">
-          ⚠ {error}
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800">
+          {error}
         </div>
       )}
 
       {/* Audit Log Table */}
-      <div className="border border-slate-200/80 rounded-2xl overflow-hidden bg-white shadow-xs">
+      <div className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         {loading ? (
-          <div className="p-12 text-center text-xs text-slate-400">Loading audit trail...</div>
+          <div className="space-y-3 p-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
         ) : logs.length === 0 ? (
           <div className="p-12 text-center text-xs text-slate-400">No audit events recorded yet.</div>
         ) : (
-          <table className="w-full text-left text-sm text-slate-700">
-            <thead className="bg-slate-50/80 text-[11px] uppercase font-bold tracking-wider text-slate-500 border-b border-slate-100">
-              <tr>
-                <th className="px-6 py-3.5">Action</th>
-                <th className="px-6 py-3.5">Resource</th>
-                <th className="px-6 py-3.5">Timestamp</th>
-                <th className="px-6 py-3.5 text-right">Details</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 font-mono text-xs">
-              {logs.map((log) => {
-                const conf = actionColors[log.action] || {
-                  bg: "bg-slate-100 border-slate-200",
-                  text: "text-slate-700",
-                  label: log.action,
-                };
-                return (
-                  <tr key={log.id} className="hover:bg-slate-50/70 transition-colors">
-                    <td className="px-6 py-3.5 font-sans">
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${conf.bg} ${conf.text}`}
-                      >
-                        {conf.label}
-                      </span>
-                    </td>
-                    <td className="px-6 py-3.5">
-                      <div className="text-slate-900 font-semibold">{log.resource_type}</div>
-                      {log.resource_id && (
-                        <div className="text-[11px] text-slate-400 truncate max-w-[200px]">
-                          {log.resource_id}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-3.5 text-slate-500 font-sans text-xs">
-                      {new Date(log.created_at).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-3.5 text-right font-sans">
-                      <button
-                        onClick={() => setSelectedLog(log)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors shadow-2xs"
-                      >
-                        Inspect
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] text-left text-sm text-slate-700">
+              <thead className="border-b border-slate-100 bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                <tr>
+                  <th className="px-6 py-3.5">Action</th>
+                  <th className="px-6 py-3.5">Resource</th>
+                  <th className="px-6 py-3.5">Timestamp</th>
+                  <th className="px-6 py-3.5 text-right">Details</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {logs.map((log) => {
+                  const meta = actionMeta[log.action] ?? { tone: "neutral" as BadgeTone, label: log.action };
+                  return (
+                    <tr key={log.id} className="transition-colors hover:bg-slate-50/70">
+                      <td className="px-6 py-3.5">
+                        <Badge tone={meta.tone} uppercase>
+                          {meta.label}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-3.5">
+                        <div className="font-semibold text-slate-900">{log.resource_type}</div>
+                        {log.resource_id && (
+                          <div className="max-w-[200px] truncate font-mono text-[11px] text-slate-400">
+                            {log.resource_id}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-6 py-3.5 text-xs text-slate-500">
+                        {new Date(log.created_at).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-3.5 text-right">
+                        <Button variant="secondary" size="sm" onClick={() => setSelectedLog(log)}>
+                          <Search className="h-3.5 w-3.5" aria-hidden /> Inspect
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* Pagination bar */}
-        <div className="flex items-center justify-between px-6 py-3 bg-slate-50/80 border-t border-slate-100 text-xs text-slate-500 font-sans">
+        <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/80 px-6 py-3 text-xs text-slate-500">
           <div>
             Showing <span className="font-semibold text-slate-700">{logs.length}</span> of{" "}
             <span className="font-semibold text-slate-700">{total}</span> events
           </div>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={page <= 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
-              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
             >
               Previous
-            </button>
+            </Button>
             <span className="px-2 font-semibold text-slate-800">Page {page}</span>
-            <button
+            <Button
+              variant="secondary"
+              size="sm"
               disabled={page * 25 >= total}
               onClick={() => setPage((p) => p + 1)}
-              className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-slate-700 text-xs font-semibold shadow-2xs transition-colors"
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       </div>
 
       {/* JSON Inspector Modal */}
-      {selectedLog && (
-        <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-lg w-full shadow-xl space-y-4 font-sans">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 font-mono">
-                <span>🔍</span> Audit Event Inspector
-              </h3>
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="text-slate-400 hover:text-slate-700 text-sm font-semibold p-1 rounded-lg hover:bg-slate-100 transition-colors"
-              >
-                ✕
-              </button>
-            </div>
+      <Modal
+        open={selectedLog !== null}
+        onClose={() => setSelectedLog(null)}
+        size="max-w-lg"
+        title={
+          <span className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-indigo-500" aria-hidden /> Audit Event Inspector
+          </span>
+        }
+      >
+        {selectedLog && (
+          <div className="space-y-4">
             <div className="space-y-2 text-xs">
               <div className="flex justify-between border-b border-slate-100 py-1.5">
                 <span className="text-slate-500">Event ID:</span>
-                <span className="font-mono text-slate-800 font-medium">{selectedLog.id}</span>
+                <span className="font-mono font-medium text-slate-800">{selectedLog.id}</span>
               </div>
               <div className="flex justify-between border-b border-slate-100 py-1.5">
                 <span className="text-slate-500">Action:</span>
@@ -212,40 +219,41 @@ export function AuditTab({ orgId }: AuditTabProps) {
               </div>
               <div className="flex justify-between border-b border-slate-100 py-1.5">
                 <span className="text-slate-500">Resource:</span>
-                <span className="text-slate-800 font-medium">
+                <span className="font-medium text-slate-800">
                   {selectedLog.resource_type} ({selectedLog.resource_id || "N/A"})
                 </span>
               </div>
               <div className="flex justify-between border-b border-slate-100 py-1.5">
                 <span className="text-slate-500">Actor User ID:</span>
-                <span className="font-mono text-slate-700">{selectedLog.actor_user_id || "System"}</span>
+                <span className="font-mono text-slate-700">
+                  {selectedLog.actor_user_id || "System"}
+                </span>
               </div>
               <div className="flex justify-between border-b border-slate-100 py-1.5">
                 <span className="text-slate-500">Timestamp:</span>
-                <span className="text-slate-700">{new Date(selectedLog.created_at).toISOString()}</span>
+                <span className="text-slate-700">
+                  {new Date(selectedLog.created_at).toISOString()}
+                </span>
               </div>
             </div>
 
             <div>
-              <div className="text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+              <div className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-700">
                 Event Metadata Payload
               </div>
-              <pre className="p-3.5 bg-slate-900 border border-slate-800 rounded-xl text-[11px] font-mono text-emerald-400 overflow-x-auto max-h-48">
+              <pre className="max-h-48 overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 p-3.5 font-mono text-xs leading-relaxed text-emerald-400">
                 {JSON.stringify(selectedLog.metadata_, null, 2)}
               </pre>
             </div>
 
-            <div className="flex justify-end pt-2">
-              <button
-                onClick={() => setSelectedLog(null)}
-                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors"
-              >
+            <div className="flex justify-end pt-1">
+              <Button variant="secondary" size="sm" onClick={() => setSelectedLog(null)}>
                 Close
-              </button>
+              </Button>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 }
