@@ -6,11 +6,7 @@ export const metadata: Metadata = {
   title: "Enterprise Knowledge Assistant",
   description:
     "Open-source RAG + Agentic AI platform. Ask questions, get cited answers.",
-  icons: {
-    icon: "/icon.jpg",
-    shortcut: "/icon.jpg",
-    apple: "/icon.jpg",
-  },
+  // Favicon is auto-served from src/app/icon.svg (crisp at every size).
 };
 
 export default function RootLayout({
